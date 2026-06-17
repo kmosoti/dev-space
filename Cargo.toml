@@ -1,0 +1,12 @@
+[package]
+name = "dev-space-core"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "dev_space_core"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.21.2", features = ["extension-module"] }
+tokio = { version = "1.37.0", features = ["full"] }
