@@ -1,0 +1,36 @@
+{
+    "name": "dev-space",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "args": {}
+    },
+    "features": {
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+            "version": "latest",
+            "enableNonRootDocker": "true",
+            "moby": "true"
+        }
+    },
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "python.defaultInterpreterPath": "/home/vscode/.local/bin/python",
+                "python.testing.pytestEnabled": true,
+                "rust-analyzer.check.command": "clippy"
+            },
+            "extensions": [
+                "charliermarsh.ruff",
+                "rust-lang.rust-analyzer",
+                "tamasfe.even-better-toml",
+                "ms-python.python",
+                "ms-azuretools.vscode-docker"
+            ]
+        }
+    },
+    "remoteUser": "vscode",
+    "postCreateCommand": "sudo systemctl enable dev-space-daemon.service || true",
+    "runArgs": [
+        "--init",
+        "--privileged"
+    ]
+}

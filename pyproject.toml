@@ -1,0 +1,78 @@
+[project]
+name = "dev-space"
+version = "0.1.0"
+description = "Agent-first development environment orchestrator."
+readme = "README.md"
+authors = [
+    { name = "kz-harbringer", email = "kz-harbringer@users.noreply.github.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "rich>=15.0.0",
+    "structlog>=26.1.0",
+    "typer>=0.26.7",
+    "pydantic-settings>=2.7.0"
+]
+
+[build-system]
+requires = ["uv_build>=0.11.21,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "maturin>=1.14.0",
+    "pytest>=9.1.0",
+    "ruff>=0.15.17",
+    "pytest-cov>=7.1.0",
+    "mutmut>=3.6.0",
+    "pip-audit>=2.10.1",
+    "vulture>=2.16",
+    "syrupy>=5.3.2",
+    "hypothesis>=6.155.3"
+]
+
+# --- MATURIN BUILD SYSTEM ---
+[tool.maturin]
+features = ["pyo3/extension-module"]
+binding = "pyo3"
+manifest-path = "Cargo.toml"
+
+# --- RUFF ANTI-SUPPRESSION RULES ---
+[tool.ruff.lint]
+select = [
+    "F",    # Pyflakes
+    "E",    # Pycodestyle Errors
+    "W",    # Pycodestyle Warnings
+    "RUF",  # Ruff core rules (RUF100 catches unused inline noqas)
+    "PGH",  # Pygrep-hooks (PGH004 blocks broad untagged "# noqa")
+    "BLE",  # Blind exceptions (BLE001 forbids "except Exception:")
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]
+
+# --- VULTURE DEAD CODE ELIMINATION ---
+[tool.vulture]
+exclude = ["tests/"]
+min_confidence = 80
+paths = ["src/"]
+
+# --- PYTEST COVERAGE ---
+[tool.pytest.ini_options]
+filterwarnings = ["error"]
+addopts = "-ra --cov=src --cov-report=term-missing --tb=short --strict-markers"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+branch = true
+source = ["src"]
+
+[tool.coverage.report]
+fail_under = 99
+show_missing = true
+
+# --- MUTATION TESTING ---
+[tool.mutmut]
+paths_to_mutate = "src/"
+tests_dir = "tests/"
+runner = "uv run pytest"
