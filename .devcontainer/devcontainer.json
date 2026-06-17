@@ -28,7 +28,6 @@
         }
     },
     "remoteUser": "vscode",
-    "postCreateCommand": "sudo systemctl enable dev-space-daemon.service || true",
     "runArgs": [
         "--init",
         "--privileged"
