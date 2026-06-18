@@ -81,5 +81,9 @@ $ dev-space logs search gh --query "Exception"
 
 To run the pipeline locally:
 ```bash
-dev-space qa pipeline
+# Run lightweight static analysis (Ruff, Vulture, Pip-Audit)
+uv run dev-space qa scan
+
+# Run heavy enforcement (Pytest execution and Mutmut mutation elimination)
+uv run dev-space qa enforce
 ```
