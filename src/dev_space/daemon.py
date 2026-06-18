@@ -1,6 +1,5 @@
 import asyncio
 import structlog
-import json
 
 logger = structlog.get_logger()
 
@@ -48,7 +47,7 @@ async def rsgi_app(scope, receive, send):
     """
     # Lazy initialization of background tasks to ensure they attach to the correct asyncio loop
     start_background_tasks()
-    
+
     if scope.path == "/healthz":
         await send({
             "type": "http.response.start",

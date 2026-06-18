@@ -22,6 +22,6 @@ def start(host: str = "127.0.0.1", port: int = 8080):
             workers=1
         )
         server.serve()
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         logger.error("Failed to start daemon", error=str(e))
         raise typer.Exit(code=1)

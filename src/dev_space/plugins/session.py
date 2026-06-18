@@ -1,8 +1,6 @@
 import typer
 import structlog
-import asyncio
 from pathlib import Path
-from dev_space import core
 from dev_space.aop import plugin_command
 
 app = typer.Typer(help="Session Orchestration & Git Worktrees (ADR-004)")

@@ -16,7 +16,7 @@ def add(path: str, branch: str):
     try:
         result = executor.execute_agent_command("git", ["worktree", "add", path, branch])
         logger.info("Worktree added", output=result.strip())
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         logger.error("Worktree add failed", error=str(e))
         raise typer.Exit(code=1)
 
@@ -30,7 +30,7 @@ def list():
     try:
         result = executor.execute_agent_command("git", ["worktree", "list"])
         logger.info("Worktrees", output=result.strip())
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         logger.error("Worktree list failed", error=str(e))
         raise typer.Exit(code=1)
 
@@ -44,6 +44,6 @@ def remove(path: str):
     try:
         result = executor.execute_agent_command("git", ["worktree", "remove", path])
         logger.info("Worktree removed", output=result.strip())
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         logger.error("Worktree remove failed", error=str(e))
         raise typer.Exit(code=1)

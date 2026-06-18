@@ -17,7 +17,7 @@ def search(plugin: str, query: str = "", from_date: str = "", to_date: str = "")
         # Calls the Rust core binding (which we will add)
         result = executor.search_logs(plugin, query, from_date, to_date)
         logger.info("Search Results", results=result)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         logger.error("Log search failed", error=str(e))
         raise typer.Exit(code=1)
 

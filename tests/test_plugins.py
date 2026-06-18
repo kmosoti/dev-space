@@ -67,7 +67,7 @@ def test_session_start(tmp_path):
 @patch("dev_space.executor.execute_agent_command")
 def test_plugin_failures(mock_exec):
     mock_exec.side_effect = Exception("Mocked failure")
-    
+
     assert runner.invoke(app, ["gh", "auth-status"]).exit_code == 1
     assert runner.invoke(app, ["gh", "pr"]).exit_code == 1
     assert runner.invoke(app, ["worktree", "add", "p", "b"]).exit_code == 1

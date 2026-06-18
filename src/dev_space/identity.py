@@ -1,7 +1,6 @@
 import os
 import structlog
 from pathlib import Path
-from contextlib import contextmanager
 
 logger = structlog.get_logger()
 

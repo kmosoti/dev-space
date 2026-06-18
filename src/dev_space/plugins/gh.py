@@ -17,7 +17,7 @@ def auth_status():
         result = executor.execute_agent_command("gh", ["auth", "status"])
         logger.info("GitHub Auth Status", output=result.strip())
         # In jsonl format we let the structured log output handle rendering
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         logger.error("GitHub Auth failed", error=str(e))
         raise typer.Exit(code=1)
 
@@ -33,6 +33,6 @@ def pr():
             "gh", ["pr", "list", "--json", "number,title,state"]
         )
         logger.info("GitHub PR List", prs=result.strip())
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         logger.error("GitHub PR failed", error=str(e))
         raise typer.Exit(code=1)
