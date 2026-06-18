@@ -44,6 +44,10 @@ binding = "pyo3"
 manifest-path = "Cargo.toml"
 module-name = "dev_space.core"
 
+# --- UV CONFIGURATION ---
+[tool.uv]
+link-mode = "copy"
+
 # --- RUFF ANTI-SUPPRESSION RULES ---
 [tool.ruff.lint]
 select = [
