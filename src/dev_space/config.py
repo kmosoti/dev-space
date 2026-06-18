@@ -1,6 +1,4 @@
-import os
-from pathlib import Path
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -54,5 +52,6 @@ class DevSpaceSettings(BaseSettings):
         # We can layer TOML files here. For simplicity in Phase 1, we rely on env vars + defaults.
         # TODO: Add TOML file reading from ~/.config/dev-space/config.toml
         return cls()
+
 
 config = DevSpaceSettings.load()

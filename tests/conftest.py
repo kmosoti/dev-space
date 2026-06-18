@@ -12,11 +12,11 @@ def verify_observability_logging(caplog: LogCaptureFixture, request):
     Can be bypassed by marking a test with @pytest.mark.no_observability.
     """
     yield
-    
+
     # Allow explicit opt-out for utility functions that genuinely don't log
     if "no_observability" in request.node.keywords:
         return
-        
+
     if not caplog.records:
         pytest.fail(
             "Observability Enforcement Breach: The active execution path "
@@ -54,7 +54,9 @@ def pytest_collection_modifyitems(items):
                 f"lacks explicit logic verification targets."
             )
 
+
 def pytest_configure(config):
     config.addinivalue_line(
-        "markers", "no_observability: Mark a test to bypass the structured logging requirement"
+        "markers",
+        "no_observability: Mark a test to bypass the structured logging requirement",
     )
