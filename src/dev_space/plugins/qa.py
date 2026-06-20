@@ -24,12 +24,8 @@ def scan():
 
     for name, cmd in tools:
         logger.info(f"Running {name}...")
-        try:
-            result = executor.execute_agent_command(cmd[0], cmd[1:])
-            logger.info(f"{name} passed", output=result.strip()[:200])
-        except Exception as e:  # noqa: BLE001
-            logger.error(f"{name} failed", error=str(e))
-            raise typer.Exit(code=1)
+        result = executor.execute_agent_command(cmd[0], cmd[1:])
+        logger.info(f"{name} passed", output=result.strip()[:200])
 
     logger.info("QA Scan complete. Zero-Trust boundaries validated.")
     typer.echo('{"status": "success", "message": "QA Scan Passed"}')
@@ -50,12 +46,8 @@ def enforce():
 
     for name, cmd in tools:
         logger.info(f"Running {name}...")
-        try:
-            result = executor.execute_agent_command(cmd[0], cmd[1:])
-            logger.info(f"{name} passed", output=result.strip()[:200])
-        except Exception as e:  # noqa: BLE001
-            logger.error(f"{name} failed", error=str(e))
-            raise typer.Exit(code=1)
+        result = executor.execute_agent_command(cmd[0], cmd[1:])
+        logger.info(f"{name} passed", output=result.strip()[:200])
 
     logger.info("QA Enforcement complete. 99% Boundary secured.")
     typer.echo('{"status": "success", "message": "QA Enforcement Passed"}')

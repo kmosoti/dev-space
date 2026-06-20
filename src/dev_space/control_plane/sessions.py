@@ -444,7 +444,7 @@ class SessionService:
                 payload={
                     "title": specification.title,
                     "body": body,
-                    "head": f"{self.policy.repository.worker_fork_owner}:{branch}",
+                    "head": f"{self.policy.repository.worker_owner}:{branch}",
                     "base": self.policy.repository.default_branch,
                     "draft": True,
                     "maintainer_can_modify": True,
@@ -468,7 +468,7 @@ class SessionService:
         }
 
     def _open_pull_requests(self, branch: str) -> list[dict[str, object]]:
-        owner = self.policy.repository.worker_fork_owner or self.policy.repository.owner
+        owner = self.policy.repository.worker_owner
         response = self.client.rest(
             f"repos/{self.policy.repository.full_name}/pulls?state=open&head={owner}:{branch}"
         )

@@ -13,14 +13,8 @@ def add(path: str, branch: str):
     """
     Creates a new git worktree using the Rust execution core.
     """
-    try:
-        result = executor.execute_agent_command(
-            "git", ["worktree", "add", path, branch]
-        )
-        logger.info("Worktree added", output=result.strip())
-    except Exception as e:  # noqa: BLE001
-        logger.error("Worktree add failed", error=str(e))
-        raise typer.Exit(code=1)
+    result = executor.execute_agent_command("git", ["worktree", "add", path, branch])
+    logger.info("Worktree added", output=result.strip())
 
 
 @app.command()
@@ -29,12 +23,8 @@ def list():
     """
     Lists current git worktrees.
     """
-    try:
-        result = executor.execute_agent_command("git", ["worktree", "list"])
-        logger.info("Worktrees", output=result.strip())
-    except Exception as e:  # noqa: BLE001
-        logger.error("Worktree list failed", error=str(e))
-        raise typer.Exit(code=1)
+    result = executor.execute_agent_command("git", ["worktree", "list"])
+    logger.info("Worktrees", output=result.strip())
 
 
 @app.command()
@@ -43,9 +33,5 @@ def remove(path: str):
     """
     Removes a git worktree.
     """
-    try:
-        result = executor.execute_agent_command("git", ["worktree", "remove", path])
-        logger.info("Worktree removed", output=result.strip())
-    except Exception as e:  # noqa: BLE001
-        logger.error("Worktree remove failed", error=str(e))
-        raise typer.Exit(code=1)
+    result = executor.execute_agent_command("git", ["worktree", "remove", path])
+    logger.info("Worktree removed", output=result.strip())

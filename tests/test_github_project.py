@@ -7,6 +7,7 @@ import pytest
 
 from dev_space.control_plane.github import (
     GitHubClient,
+    GitHubConflictError,
     GitHubResponseError,
 )
 from dev_space.control_plane.policy import load_policy
@@ -254,6 +255,40 @@ def test_reconciliation_detects_duplicate_and_unchanged_project():
         for entry in unchanged.entries
         if entry.resource not in {"project_view", "project_workflow"}
     )
+
+
+def test_reconciliation_rejects_incompatible_field_type():
+    configured = policy()
+    drifted = snapshot(complete=True)
+    drifted.fields[0].data_type = "TEXT"
+
+    report = build_reconciliation_report(
+        configured, [{"number": drifted.number}], drifted
+    )
+    field = next(entry for entry in report.entries if entry.key == "Status")
+
+    assert field.action == ReconciliationAction.CONFLICT
+    assert field.detail == "field type cannot be changed in place"
+    assert report.has_conflicts is True
+
+
+def test_project_apply_stops_before_mutating_incompatible_field_type(tmp_path):
+    configured = policy()
+    drifted = snapshot(complete=True)
+    drifted.fields[0].data_type = "TEXT"
+    client = FakeClient()
+    service = ProjectService(
+        configured,
+        client=client,
+        identity_store=ProjectIdentityStore(tmp_path),
+    )
+    adapter = FakeAdapter([drifted])
+    service.adapter = adapter
+
+    with pytest.raises(GitHubConflictError, match="reconciliation conflicts"):
+        service.apply()
+
+    assert not any(call[0] == "update_project" for call in adapter.calls)
 
 
 def test_project_service_apply_reconciles_and_persists_identity(tmp_path):

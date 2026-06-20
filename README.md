@@ -1,16 +1,25 @@
 # dev-space
 
-Agent-first development environment orchestrator built with Python and Rust.
+Agent-first development workflow orchestrator built with Python and Rust.
 
-`dev-space` guarantees safety and consistency by running dual-identities for AI coding agents and human developers, separating them into distinct Git session worktrees and SSH lanes. It utilizes a high-performance Rust PyO3 core to guarantee non-blocking system executions, log compression, and streaming search.
+`dev-space` separates planner and worker identities, creates issue-scoped Git
+worktrees, reconciles a GitHub Project v2 control plane, and hands verified work
+off through draft pull requests. A PyO3 module provides subprocess execution and
+log-file search primitives.
 
 ## Features
 
-- **Agent Isolation Jails**: Ephemeral, disposable Git worktrees bound to specific sessions (`dev-space session start`).
-- **Identity Lanes**: Automated SSH/Git config switching based on the `--lane` global flag (`human` vs `agent`), protecting your main GitHub account.
-- **Rust Execution Core**: Safe execution of arbitrary terminal commands native in Rust (`pyo3`), protecting the Python GIL from IO deadlocks.
-- **Zero-Trust QA Pipeline**: Strict runtime and static analysis enforcement, including AST scanning for test validity, `mutmut` mutation tests, and structured observability telemetry.
-- **Background Daemon**: A Granian RSGI daemon handling UTC-midnight `.zst` log compressions, log rotations, and 6-hour git worktree pruning.
+- **Issue-scoped sessions**: Recoverable Git worktrees, journals, branches, and
+  draft-PR handoff for one Agent-ready issue.
+- **Identity lanes**: Separate GitHub configuration, SSH routing, commit identity,
+  and repository authority for planner and worker actors.
+- **GitHub control plane**: Typed Project v2 snapshot, reconciliation, issue
+  hierarchy, dependency, readiness, and lifecycle contracts.
+- **Verification gates**: Ruff, Pytest coverage, Vulture, dependency audit, Rust
+  tests, Clippy, and pull-request contract validation.
+- **Daemon scaffold**: Granian RSGI health and metrics endpoints with scheduled
+  loop placeholders. Log rotation, compression, and session reaping are not yet
+  implemented.
 
 ---
 
@@ -19,65 +28,63 @@ Agent-first development environment orchestrator built with Python and Rust.
 ```mermaid
 graph TD
     CLI[Typer CLI / dev-space] --> ID[Identity Strategy<br/>Human vs Agent]
-    ID --> GITHUB[gh CLI PyO3 Wrapper]
-    ID --> WORKTREE[Git Worktree PyO3 Wrapper]
-    
+    ID --> PROJECT[Project v2 + Issues]
+    ID --> WORKTREE[Issue-scoped Git Worktrees]
+
+    WORKTREE --> HANDOFF[Verification + Draft PR]
     CLI --> DAEMON[Granian RSGI Daemon]
-    DAEMON --> TASKS[Async Background Tasks]
-    TASKS --> COMPRESS[Zstd Log Compressor]
-    TASKS --> REAPER[Worktree Session Reaper]
-    
+    DAEMON --> HEALTH[Health + Metrics]
+
     CLI --> LOGS[dev-space logs search]
     LOGS --> RUSTCORE[Rust PyO3 Extension]
-    RUSTCORE --> ZSTD[Zstd Memory Mapped Search]
-    
-    CLI --> QA[dev-space qa pipeline]
+    CLI --> QA[dev-space qa scan / enforce]
     QA --> PYTEST[pytest + conftest.py AST Scanner]
 ```
 
 ## Installation
 
-You can install `dev-space` seamlessly via `uv`:
+For local development, sync the locked environment and invoke the CLI through
+`uv`:
 
 ```bash
-uv tool install dev-space
+uv sync --dev
+uv run dev-space --help
 ```
-
-*(Alternatively, grab the pre-compiled `linux/x86_64` or `linux/aarch64` wheels directly from the GitHub Releases page).*
 
 ## Usage: Human vs. Agent Intent
 
-By default, the CLI assumes `--lane=agent` to ensure maximum safety.
+The CLI defaults to the worker (`agent`) identity lane. Use an explicit lane for
+control-plane operations.
 
 ### As an Agent:
 ```bash
-# Provision a safe isolation jail
-$ dev-space session start task-1234
-{"event": "Created worktree task-1234 at .dev-space/sessions/task-1234", "level": "info"}
+# Start a session for a Ready, Agent-ready GitHub issue
+uv run dev-space --lane agent session start 59 --repo /home/user/src/dev-space
 
-# Execute PR checks safely as the agent identity
-$ dev-space --lane=agent gh pr-list
+# Verify, push to the configured worker repository, and create/update a draft PR
+uv run dev-space --lane agent session handoff 59 --repo /home/user/src/dev-space
 ```
 
 ### As a Human:
 ```bash
-# Force the output to rich-text for human viewing and act as the human identity
-$ dev-space --lane=human --rich gh auth-status
+# Inspect and reconcile the planner-owned Project v2
+uv run dev-space --lane human project doctor --repo /home/user/src/dev-space
+uv run dev-space --lane human project plan --repo /home/user/src/dev-space
 ```
 
 ### Managing the Daemon:
 ```bash
-# Start the background daemon
-$ dev-space daemon start
-{"event": "Starting Granian RSGI Server on port 8000", "level": "info"}
+# Start the health/metrics daemon
+uv run dev-space daemon start --port 8080
 
-# Instant, native Rust log searching across massive `.zst` archives
-$ dev-space logs search gh --query "Exception"
+# Search configured log files through the Rust binding
+uv run dev-space logs search gh --query "Exception"
 ```
 
 ## Security & QA
 
-`dev-space` uses a zero-trust QA pipeline. Any code must emit structural telemetry, and tests must pass `mutmut` mutation survival checks.
+`dev-space` uses repository-local quality and control-plane checks. Tests enforce
+structured telemetry on operational paths and explicit verification targets.
 
 To run the pipeline locally:
 ```bash

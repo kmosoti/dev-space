@@ -348,6 +348,40 @@ def test_pull_request_create_update_duplicate_and_review(
         instance._pull_request(101, "mutation/issue-101-test", verification)
 
 
+def test_pull_request_uses_target_owner_for_repository_write(
+    session_repo, tmp_path, monkeypatch
+):
+    instance, client = service(session_repo, tmp_path)
+    repository = instance.policy.repository.model_copy(
+        update={"worker_authority": "repository_write", "worker_fork_owner": None}
+    )
+    instance.policy = instance.policy.model_copy(update={"repository": repository})
+
+    def create_rest(endpoint, *, method="GET", payload=None):
+        client.calls.append((endpoint, method, payload))
+        if method == "POST" and endpoint.endswith("/pulls"):
+            return {"number": 71, "draft": True}
+        return payload or {}
+
+    client.rest = create_rest
+    monkeypatch.setattr(instance, "_open_pull_requests", lambda branch: [])
+
+    created = instance._pull_request(
+        101,
+        "mutation/issue-101-test",
+        {"commands": [{"command": "true", "returncode": 0}]},
+    )
+    payload = next(
+        payload
+        for endpoint, method, payload in client.calls
+        if method == "POST" and endpoint.endswith("/pulls")
+    )
+
+    assert created["number"] == 71
+    assert repository.worker_owner == "kmosoti"
+    assert payload["head"] == "kmosoti:mutation/issue-101-test"
+
+
 def test_worker_identity_failure_is_reported(session_repo, tmp_path, monkeypatch):
     instance, _ = service(session_repo, tmp_path)
     instance.verify_identity = True

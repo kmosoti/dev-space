@@ -98,12 +98,16 @@ class RepositoryConfig(BaseModel):
         return f"{self.owner}/{self.name}"
 
     @property
-    def worker_repository(self) -> str:
+    def worker_owner(self) -> str:
         owner = (
             self.worker_fork_owner if self.worker_authority == "fork" else self.owner
         )
         assert owner is not None
-        return f"{owner}/{self.name}"
+        return owner
+
+    @property
+    def worker_repository(self) -> str:
+        return f"{self.worker_owner}/{self.name}"
 
 
 class ProjectOptionPolicy(BaseModel):

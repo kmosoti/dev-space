@@ -29,7 +29,6 @@
     },
     "remoteUser": "vscode",
     "runArgs": [
-        "--init",
-        "--privileged"
+        "--init"
     ]
 }

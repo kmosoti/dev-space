@@ -168,16 +168,24 @@ def build_reconciliation_report(
         report.entries.append(
             ReconciliationEntry(
                 action=(
-                    ReconciliationAction.UNCHANGED
-                    if type_matches and options_match
-                    else ReconciliationAction.UPDATE
+                    ReconciliationAction.CONFLICT
+                    if not type_matches
+                    else (
+                        ReconciliationAction.UNCHANGED
+                        if options_match
+                        else ReconciliationAction.UPDATE
+                    )
                 ),
                 resource="project_field",
                 key=desired_field.name,
                 detail=(
                     "field matches"
                     if type_matches and options_match
-                    else "field type or options drift"
+                    else (
+                        "field type cannot be changed in place"
+                        if not type_matches
+                        else "field options drift"
+                    )
                 ),
                 desired={
                     "data_type": desired_field.data_type,
