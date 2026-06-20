@@ -1,4 +1,5 @@
 import pytest
+from rich.text import Text
 from unittest.mock import patch
 from typer.testing import CliRunner
 from dev_space.cli import app
@@ -12,10 +13,11 @@ def test_dev_space_help(snapshot):
     Validates that the Typer CLI loads and the help command succeeds.
     Satisfies AST 'snapshot' requirement from conftest.py.
     """
-    result = runner.invoke(app, ["--help"], color=False)
+    result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0
-    assert "\x1b[" not in result.stdout
-    snapshot.assert_match(result.stdout)
+    output = Text.from_ansi(result.stdout).plain
+    assert "\x1b[" not in output
+    snapshot.assert_match(output)
 
 
 @pytest.mark.no_observability
