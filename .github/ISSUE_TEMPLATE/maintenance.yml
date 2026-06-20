@@ -1,0 +1,29 @@
+name: Maintenance
+description: Define bounded operational, dependency, or cleanup work.
+title: "[Maintenance]: "
+labels: ["type:maintenance", "status:needs-definition"]
+body:
+  - type: input
+    id: parent
+    attributes: {label: Parent Epic, placeholder: "#123"}
+    validations: {required: true}
+  - type: textarea
+    id: outcome
+    attributes: {label: Required outcome}
+    validations: {required: true}
+  - type: textarea
+    id: scope
+    attributes: {label: Scope}
+    validations: {required: true}
+  - type: textarea
+    id: non_goals
+    attributes: {label: Non-goals}
+    validations: {required: true}
+  - type: textarea
+    id: verification
+    attributes: {label: Verification}
+    validations: {required: true}
+  - type: textarea
+    id: rollback
+    attributes: {label: Rollback}
+    validations: {required: true}

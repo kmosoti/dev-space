@@ -1,0 +1,50 @@
+name: PR Check Gate
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  fast-feedback:
+    name: Fast QA Feedback
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Setup Python
+        run: uv python install 3.12
+
+      - name: Sync dependencies
+        run: uv sync --all-extras --dev
+
+      - name: Check for Suppression Tokens
+        run: |
+          if grep -rqE "#\s*(noqa|ruff:|fmt:skip|vulture:)" src/ tests/; then
+              echo "Security Exception: Inline directive suppression token discovered."
+              exit 1
+          fi
+          echo "No suppressions found."
+
+      - name: Vulture Dead-Code Scan
+        run: uv run vulture
+
+      - name: Ruff Lint & Format
+        run: |
+          uv run ruff check
+          uv run ruff format --check
+
+      - name: Pytest Branch Coverage
+        run: uv run pytest
+
+      - name: Pip Audit
+        run: uv run pip-audit

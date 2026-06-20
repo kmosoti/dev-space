@@ -1,0 +1,257 @@
+schema_version = 1
+
+[repository]
+owner = "kmosoti"
+name = "dev-space"
+default_branch = "main"
+worker_authority = "fork"
+worker_fork_owner = "kz-harbringer"
+
+[project]
+owner = "kmosoti"
+title = "dev-space"
+short_description = "Operational source of truth for the dev-space control plane and agent workflow."
+readme = """# dev-space control plane
+
+This Project v2 is the operational source of truth for work membership and live workflow state.
+
+Repository policy defines the desired schema and governance. Epics contain bounded implementation issues; Epics never own implementation branches or pull requests.
+"""
+public = false
+
+[[project.fields]]
+name = "Status"
+data_type = "SINGLE_SELECT"
+options = [
+  { name = "Inbox", description = "Captured but not classified.", color = "GRAY" },
+  { name = "Needs Definition", description = "Specification or decision work remains.", color = "YELLOW" },
+  { name = "Ready", description = "Planner-approved and dependency-complete.", color = "BLUE" },
+  { name = "In Progress", description = "An authorized implementation session is active.", color = "YELLOW" },
+  { name = "In Review", description = "A draft pull request is awaiting human review.", color = "PURPLE" },
+  { name = "Blocked", description = "A recorded condition prevents progress.", color = "RED" },
+  { name = "Done", description = "Accepted and merged by the human authority.", color = "GREEN" },
+  { name = "Canceled", description = "Intentionally stopped with a recorded reason.", color = "GRAY" },
+]
+
+[[project.fields]]
+name = "Work Type"
+data_type = "SINGLE_SELECT"
+options = [
+  { name = "Epic", description = "Overall plan or outcome; never implemented directly.", color = "PURPLE" },
+  { name = "Change", description = "Bounded capability increment.", color = "BLUE" },
+  { name = "Bug", description = "Observed defect with regression coverage.", color = "RED" },
+  { name = "Maintenance", description = "Bounded operational or dependency work.", color = "GRAY" },
+  { name = "Decision", description = "Product, architecture, security, or policy choice.", color = "YELLOW" },
+]
+
+[[project.fields]]
+name = "Execution"
+data_type = "SINGLE_SELECT"
+options = [
+  { name = "Agent-ready", description = "Fully specified for autonomous worker execution.", color = "GREEN" },
+  { name = "Agent-assisted", description = "Requires planned human checkpoints.", color = "YELLOW" },
+  { name = "Human-only", description = "Must not be executed by the worker identity.", color = "RED" },
+]
+
+[[project.fields]]
+name = "Risk"
+data_type = "SINGLE_SELECT"
+options = [
+  { name = "Low", description = "Small and readily reversible.", color = "GREEN" },
+  { name = "Medium", description = "Reviewable with explicit rollback.", color = "YELLOW" },
+  { name = "High", description = "Requires human-led execution or a dedicated decision.", color = "RED" },
+]
+
+[[project.fields]]
+name = "Development Branch"
+data_type = "TEXT"
+
+[[project.views]]
+name = "Inbox and Needs Definition"
+layout = "TABLE"
+filter = "Status:Inbox,\"Needs Definition\""
+fields = ["Title", "Status", "Work Type", "Execution", "Risk", "Repository"]
+
+[[project.views]]
+name = "Agent Ready"
+layout = "TABLE"
+filter = "Status:Ready Execution:Agent-ready"
+fields = ["Title", "Status", "Execution", "Risk", "Development Branch"]
+
+[[project.views]]
+name = "Active Work"
+layout = "BOARD"
+filter = "Status:\"In Progress\",\"In Review\""
+group_by = "Status"
+fields = ["Title", "Execution", "Risk", "Development Branch"]
+
+[[project.views]]
+name = "Review Queue"
+layout = "TABLE"
+filter = "Status:\"In Review\""
+fields = ["Title", "Status", "Risk", "Development Branch", "Assignees"]
+
+[[project.views]]
+name = "Epics"
+layout = "TABLE"
+filter = "\"Work Type\":Epic"
+fields = ["Title", "Status", "Sub-issues progress", "Risk"]
+
+[[project.views]]
+name = "Blocked"
+layout = "TABLE"
+filter = "Status:Blocked"
+fields = ["Title", "Status", "Execution", "Risk", "Assignees"]
+
+[[project.views]]
+name = "Recently Completed"
+layout = "TABLE"
+filter = "Status:Done"
+fields = ["Title", "Status", "Work Type", "Repository"]
+
+[[project.workflows]]
+name = "Item closed"
+enabled = false
+configuration = { reason = "Done requires an explicit planner-authorized transition after human merge." }
+
+[actors.planner]
+login = "kmosoti"
+ssh_host = "github.com"
+commit_name = "Kennedy Mosoti"
+commit_email = "47609243+kmosoti@users.noreply.github.com"
+
+[actors.worker]
+login = "kz-harbringer"
+ssh_host = "github.com-kz"
+commit_name = "kz-harbringer"
+commit_email = "kz-harbringer@users.noreply.github.com"
+gh_config_dir = "~/.config/dev-space/agent-gh"
+
+[branch]
+template = "mutation/issue-{number}-{slug}"
+
+[checks]
+required = ["Fast QA Feedback", "Control Plane Contract"]
+
+[verification]
+focused = ["uv run pytest --capture=sys"]
+full = [
+  "uv run pytest --capture=sys",
+  "uv run ruff check .",
+  "uv run ruff format --check .",
+  "uv run vulture",
+  "PYO3_PYTHON=${PWD}/.venv/bin/python cargo test",
+  "PYO3_PYTHON=${PWD}/.venv/bin/python cargo clippy --all-targets --all-features -- -D warnings",
+]
+
+[lifecycle]
+states = ["Inbox", "Needs Definition", "Ready", "In Progress", "In Review", "Blocked", "Done", "Canceled"]
+
+[ruleset]
+name = "dev-space-main-protection"
+enforcement = "active"
+approvals = 1
+require_code_owner_review = true
+dismiss_stale_reviews = true
+require_last_push_approval = true
+require_conversation_resolution = true
+
+[[labels]]
+name = "type:epic"
+color = "8250df"
+description = "Managed by dev-space: overall plan; never implemented directly."
+
+[[labels]]
+name = "type:change"
+color = "0969da"
+description = "Managed by dev-space: bounded capability increment."
+
+[[labels]]
+name = "type:bug"
+color = "d1242f"
+description = "Managed by dev-space: observed defect."
+
+[[labels]]
+name = "type:maintenance"
+color = "57606a"
+description = "Managed by dev-space: bounded operational work."
+
+[[labels]]
+name = "type:decision"
+color = "bf8700"
+description = "Managed by dev-space: unresolved decision."
+
+[[labels]]
+name = "execution:agent-ready"
+color = "1a7f37"
+description = "Managed by dev-space: fully specified for worker execution."
+
+[[labels]]
+name = "execution:agent-assisted"
+color = "bf8700"
+description = "Managed by dev-space: requires human checkpoints."
+
+[[labels]]
+name = "execution:human-only"
+color = "d1242f"
+description = "Managed by dev-space: worker execution prohibited."
+
+[[labels]]
+name = "risk:low"
+color = "1a7f37"
+description = "Managed by dev-space: low-risk work."
+
+[[labels]]
+name = "risk:medium"
+color = "bf8700"
+description = "Managed by dev-space: medium-risk work."
+
+[[labels]]
+name = "risk:high"
+color = "d1242f"
+description = "Managed by dev-space: high-risk work."
+
+[[labels]]
+name = "status:inbox"
+color = "afb8c1"
+description = "Managed by dev-space: Project status is Inbox."
+
+[[labels]]
+name = "status:needs-definition"
+color = "d4a72c"
+description = "Managed by dev-space: Project status is Needs Definition."
+
+[[labels]]
+name = "status:ready"
+color = "54aeff"
+description = "Managed by dev-space: Project status is Ready."
+
+[[labels]]
+name = "status:in-progress"
+color = "d4a72c"
+description = "Managed by dev-space: Project status is In Progress."
+
+[[labels]]
+name = "status:in-review"
+color = "a475f9"
+description = "Managed by dev-space: Project status is In Review."
+
+[[labels]]
+name = "status:blocked"
+color = "d1242f"
+description = "Managed by dev-space: Project status is Blocked."
+
+[[labels]]
+name = "status:done"
+color = "1a7f37"
+description = "Managed by dev-space: Project status is Done."
+
+[[labels]]
+name = "status:canceled"
+color = "afb8c1"
+description = "Managed by dev-space: Project status is Canceled."
+
+[[labels]]
+name = "human-required"
+color = "d1242f"
+description = "Managed by dev-space: explicit human action is required."

@@ -1,0 +1,59 @@
+name: Main QA Gate
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  full-pipeline:
+    name: Zero-Trust QA Pipeline
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Setup Python
+        run: uv python install 3.12
+
+      - name: Sync dependencies
+        run: uv sync --all-extras --dev
+
+      - name: Check for Suppression Tokens
+        run: |
+          if grep -rqE "#\s*(noqa|ruff:|fmt:skip|vulture:)" src/ tests/; then
+              echo "Security Exception: Inline directive suppression token discovered."
+              exit 1
+          fi
+
+      - name: Vulture Dead-Code Scan
+        run: uv run vulture
+
+      - name: Ruff Lint & Format
+        run: |
+          uv run ruff check
+          uv run ruff format --check
+
+      - name: Pytest Branch Coverage
+        run: uv run pytest
+
+      - name: Pip Audit
+        run: uv run pip-audit
+
+      - name: Mutmut Mutation Elimination
+        run: |
+          uv run mutmut run
+          SURVIVED_COUNT=$(uv run mutmut results | grep -c "survived" || true)
+          if [ "$SURVIVED_COUNT" -gt 0 ]; then
+              echo "Pipeline Enforcement Failure: $SURVIVED_COUNT code mutations survived."
+              uv run mutmut results
+              exit 1
+          fi

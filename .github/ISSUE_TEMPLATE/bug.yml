@@ -1,0 +1,39 @@
+name: Bug
+description: Report a reproducible defect with a required regression test.
+title: "[Bug]: "
+labels: ["type:bug", "status:needs-definition"]
+body:
+  - type: input
+    id: parent
+    attributes: {label: Parent Epic, placeholder: "#123"}
+    validations: {required: true}
+  - type: textarea
+    id: reproduction
+    attributes: {label: Reproduction}
+    validations: {required: true}
+  - type: textarea
+    id: expected
+    attributes: {label: Expected behavior}
+    validations: {required: true}
+  - type: textarea
+    id: actual
+    attributes: {label: Actual behavior}
+    validations: {required: true}
+  - type: input
+    id: environment
+    attributes: {label: Environment}
+    validations: {required: true}
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options: [Low, Medium, High, Critical]
+    validations: {required: true}
+  - type: textarea
+    id: scope
+    attributes: {label: Suspected scope}
+    validations: {required: true}
+  - type: textarea
+    id: regression
+    attributes: {label: Required regression test}
+    validations: {required: true}

@@ -1,0 +1,41 @@
+# serializer version: 1
+# name: test_dev_space_help
+  '''
+                                                                                  
+   Usage: dev-space [OPTIONS] COMMAND [ARGS]...                                   
+                                                                                  
+   Agent-first development environment orchestrator.                              
+                                                                                  
+  ╭─ Options ────────────────────────────────────────────────────────────────────╮
+  │ --quiet               -q            Suppress stderr logs.                    │
+  │ --verbose             -v            Full debug trace to stderr.              │
+  │ --format                      TEXT  Structured output format                 │
+  │                                     (json|jsonl|md).                         │
+  │                                     [default: jsonl]                         │
+  │ --rich                              Force human-friendly Rich output.        │
+  │ --lane                        TEXT  Identity lane (human or agent).          │
+  │                                     [default: agent]                         │
+  │ --install-completion                Install completion for the current       │
+  │                                     shell.                                   │
+  │ --show-completion                   Show completion for the current shell,   │
+  │                                     to copy it or customize the              │
+  │                                     installation.                            │
+  │ --help                              Show this message and exit.              │
+  ╰──────────────────────────────────────────────────────────────────────────────╯
+  ╭─ Commands ───────────────────────────────────────────────────────────────────╮
+  │ bootstrap   Bootstraps the isolated dev-space environment.                   │
+  │ shell-init  Outputs a sourceable shell profile.                              │
+  │             Usage: eval "$(dev-space shell-init bash)"                       │
+  │ qa          Zero-Trust QA Pipeline Plugin (ADR-008).                         │
+  │ gh          GitHub Subcommands (ADR-002)                                     │
+  │ session     Issue-scoped worker sessions, worktrees, and draft-PR handoff    │
+  │ worktree    Git Worktree Subcommands                                         │
+  │ daemon      Daemon Lifecycle Management (ADR-006)                            │
+  │ logs        Log Search & Streaming (ADR-006)                                 │
+  │ project     GitHub Project v2 control-plane reconciliation                   │
+  │ issue       Planner-owned issue specifications and lifecycle transitions     │
+  ╰──────────────────────────────────────────────────────────────────────────────╯
+  
+  
+  '''
+# ---
