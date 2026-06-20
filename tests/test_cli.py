@@ -12,8 +12,9 @@ def test_dev_space_help(snapshot):
     Validates that the Typer CLI loads and the help command succeeds.
     Satisfies AST 'snapshot' requirement from conftest.py.
     """
-    result = runner.invoke(app, ["--help"])
+    result = runner.invoke(app, ["--help"], color=False)
     assert result.exit_code == 0
+    assert "\x1b[" not in result.stdout
     snapshot.assert_match(result.stdout)
 
 
