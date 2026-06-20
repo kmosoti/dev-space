@@ -4,22 +4,20 @@ Agent-first development workflow orchestrator built with Python and Rust.
 
 `dev-space` separates planner and worker identities, creates issue-scoped Git
 worktrees, reconciles a GitHub Project v2 control plane, and hands verified work
-off through draft pull requests. A PyO3 module provides subprocess execution and
-log-file search primitives.
+off through verified pull requests. A PyO3 module provides subprocess execution
+and log-file search primitives.
 
 ## Features
 
 - **Issue-scoped sessions**: Recoverable Git worktrees, journals, branches, and
-  draft-PR handoff for one Agent-ready issue.
+  gated pull-request handoff for one Agent-ready issue.
 - **Identity lanes**: Separate GitHub configuration, SSH routing, commit identity,
   and repository authority for planner and worker actors.
 - **GitHub control plane**: Typed Project v2 snapshot, reconciliation, issue
   hierarchy, dependency, readiness, and lifecycle contracts.
 - **Verification gates**: Ruff, Pytest coverage, Vulture, dependency audit, Rust
   tests, Clippy, and pull-request contract validation.
-- **Daemon scaffold**: Granian RSGI health and metrics endpoints with scheduled
-  loop placeholders. Log rotation, compression, and session reaping are not yet
-  implemented.
+- **Health daemon**: Granian RSGI health and metrics endpoints.
 
 ---
 
@@ -31,7 +29,7 @@ graph TD
     ID --> PROJECT[Project v2 + Issues]
     ID --> WORKTREE[Issue-scoped Git Worktrees]
 
-    WORKTREE --> HANDOFF[Verification + Draft PR]
+    WORKTREE --> HANDOFF[Verification + Ready PR]
     CLI --> DAEMON[Granian RSGI Daemon]
     DAEMON --> HEALTH[Health + Metrics]
 
@@ -61,9 +59,23 @@ control-plane operations.
 # Start a session for a Ready, Agent-ready GitHub issue
 uv run dev-space --lane agent session start 59 --repo /home/user/src/dev-space
 
-# Verify, push to the configured worker repository, and create/update a draft PR
+# Verify, push, mark the PR ready, and request review from the human planner
 uv run dev-space --lane agent session handoff 59 --repo /home/user/src/dev-space
 ```
+
+### Draft-to-review contract
+
+A pull request may remain draft while the worker collects implementation
+commits. `session handoff` is the only worker command that submits it for human
+review. The command runs the policy-pinned focused and full verification suite,
+pushes the final branch head, creates or updates exactly one draft pull request,
+marks it ready through GitHub, requests the configured planner, and then moves
+the Project item to `In Review`. Any failed step leaves the operation journal
+recoverable and does not advance the Project state.
+
+Issue `Ready` remains planner-owned. Pull-request “ready for review” only means
+the worker has completed its verification handoff; approval, auto-merge, and
+merge remain human-only, and repository checks still gate merge.
 
 ### As a Human:
 ```bash

@@ -50,3 +50,14 @@ def test_python_and_rust_quality_gates_are_enforced(workflow_name):
     assert (
         "cargo clippy --locked --all-targets --all-features -- -D warnings" in workflow
     )
+
+
+@pytest.mark.parametrize(
+    "workflow_name", ["pr-check.yml", "control-plane-contract.yml"]
+)
+def test_pull_request_gates_run_when_draft_becomes_ready(workflow_name):
+    workflow = (REPOSITORY_ROOT / ".github" / "workflows" / workflow_name).read_text(
+        encoding="utf-8"
+    )
+
+    assert "ready_for_review" in workflow

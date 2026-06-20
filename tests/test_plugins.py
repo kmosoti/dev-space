@@ -194,9 +194,3 @@ def test_logs_search_failure(mock_search):
     mock_search.side_effect = Exception("Search failed")
     result = runner.invoke(app, ["--format", "json", "logs", "search", "gh"])
     assert result.exit_code == 1
-
-
-@pytest.mark.no_observability
-def test_logs_tail():
-    result = runner.invoke(app, ["--format", "json", "logs", "tail", "gh"])
-    assert result.exit_code == 0

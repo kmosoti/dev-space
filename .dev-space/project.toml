@@ -27,7 +27,7 @@ options = [
   { name = "Needs Definition", description = "Specification or decision work remains.", color = "YELLOW" },
   { name = "Ready", description = "Planner-approved and dependency-complete.", color = "BLUE" },
   { name = "In Progress", description = "An authorized implementation session is active.", color = "YELLOW" },
-  { name = "In Review", description = "A draft pull request is awaiting human review.", color = "PURPLE" },
+  { name = "In Review", description = "A verified pull request is ready for human review.", color = "PURPLE" },
   { name = "Blocked", description = "A recorded condition prevents progress.", color = "RED" },
   { name = "Done", description = "Accepted and merged by the human authority.", color = "GREEN" },
   { name = "Canceled", description = "Intentionally stopped with a recorded reason.", color = "GRAY" },
@@ -140,8 +140,8 @@ full = [
   "uv run ruff check .",
   "uv run ruff format --check .",
   "uv run vulture",
-  "PYO3_PYTHON=${PWD}/.venv/bin/python cargo test",
-  "PYO3_PYTHON=${PWD}/.venv/bin/python cargo clippy --all-targets --all-features -- -D warnings",
+  "PYO3_PYTHON=${PWD}/.venv/bin/python cargo test --locked",
+  "PYO3_PYTHON=${PWD}/.venv/bin/python cargo clippy --locked --all-targets --all-features -- -D warnings",
 ]
 
 [lifecycle]

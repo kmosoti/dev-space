@@ -13,7 +13,7 @@ class TransitionContext:
     risk: Risk = Risk.LOW
     active_resources: bool = False
     checks_passed: bool = False
-    draft_pr_exists: bool = False
+    pr_ready_for_review: bool = False
     merged_by_planner: bool = False
     blocker: str | None = None
     cancellation_reason: str | None = None
@@ -102,8 +102,8 @@ def evaluate_transition(
     if target == LifecycleState.IN_REVIEW:
         if not context.checks_passed:
             violations.append("verification checks did not pass")
-        if not context.draft_pr_exists:
-            violations.append("draft pull request does not exist")
+        if not context.pr_ready_for_review:
+            violations.append("pull request is not ready for review")
 
     if target == LifecycleState.DONE and not context.merged_by_planner:
         violations.append("pull request was not merged by the planner")

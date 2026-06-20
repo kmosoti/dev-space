@@ -126,7 +126,7 @@ def test_ready_transition_requires_contract_gates():
             LifecycleState.IN_PROGRESS,
             LifecycleState.IN_REVIEW,
             ActorRole.WORKER,
-            TransitionContext(checks_passed=True, draft_pr_exists=True),
+            TransitionContext(checks_passed=True, pr_ready_for_review=True),
             True,
         ),
         (

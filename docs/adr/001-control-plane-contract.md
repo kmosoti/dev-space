@@ -13,8 +13,10 @@ authoritative for specifications and native hierarchy. Pull requests and check
 runs are authoritative for implementation and verification evidence.
 
 `kmosoti` is the planner, reviewer, and merge authority. `kz-harbringer` is the
-worker. The worker cannot authorize readiness, apply repository governance,
-approve, enable auto-merge, or merge.
+worker. The worker cannot authorize issue readiness, apply repository
+governance, approve, enable auto-merge, or merge. The worker may convert its
+draft pull request to ready for review only after the policy-pinned handoff
+verification passes and the final branch head is pushed.
 
 The lifecycle and command-capability matrices are executable domain contracts.
 All mutation services must call them rather than reimplementing state rules.
@@ -31,4 +33,6 @@ implementation issue receives exactly one of each.
 - A worker branch cannot change the policy used to validate its own session.
 - Project API gaps are explicit human-action results, never silent omissions.
 - GitHub and Git partial failures are recoverable without duplicate resources.
+- `In Review` means the pull request is no longer draft and human review has
+  been requested; a draft pull request remains `In Progress`.
 - The initial bootstrap is implemented locally before live Project mutation.

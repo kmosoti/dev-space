@@ -22,6 +22,15 @@ from .specification import parse_change_specification
 from dev_space.identity import configure_worktree_identity, preflight_identity
 
 
+_MARK_PULL_REQUEST_READY = """
+mutation DevSpaceMarkPullRequestReady($pullRequestId: ID!) {
+  markPullRequestReadyForReview(input: {pullRequestId: $pullRequestId}) {
+    pullRequest { id number isDraft }
+  }
+}
+"""
+
+
 class SessionError(RuntimeError):
     """A session cannot safely advance under the workflow contract."""
 
@@ -184,6 +193,10 @@ class SessionService:
                     idempotency_key=f"session:handoff:{issue_number}:pull-request",
                 ),
                 OperationStep(
+                    name="ready_for_review",
+                    idempotency_key=f"session:handoff:{issue_number}:ready-for-review",
+                ),
+                OperationStep(
                     name="review_request",
                     idempotency_key=f"session:handoff:{issue_number}:review-request",
                 ),
@@ -218,6 +231,11 @@ class SessionService:
                 "pull_request",
                 lambda: self._pull_request(issue_number, branch, verification),
             )
+            ready_pull_request = self._handoff_step(
+                journal,
+                "ready_for_review",
+                lambda: self._mark_ready_for_review(int(pull_request["number"])),
+            )
             self._handoff_step(
                 journal,
                 "review_request",
@@ -226,7 +244,9 @@ class SessionService:
             self._handoff_step(
                 journal,
                 "project_state",
-                lambda: self._set_state(issue_number, LifecycleState.IN_REVIEW, branch),
+                lambda: self._set_in_review(
+                    issue_number, branch, verification, ready_pull_request
+                ),
             )
         except Exception:
             journal.status = OperationStatus.FAILED
@@ -376,6 +396,40 @@ class SessionService:
         )
         return {"state": state.value, "branch": branch}
 
+    def _set_in_review(
+        self,
+        issue_number: int,
+        branch: str,
+        verification: dict[str, object],
+        pull_request: dict[str, object],
+    ) -> dict[str, object]:
+        _, item = self.issue_service.issue_with_project_item(issue_number)
+        try:
+            current = LifecycleState(str(item.field_values.get("Status")))
+        except ValueError as exc:
+            raise SessionError("issue has an invalid Project lifecycle state") from exc
+        commands = verification.get("commands")
+        checks_passed = (
+            isinstance(commands, list)
+            and bool(commands)
+            and all(
+                isinstance(entry, dict) and entry.get("returncode") == 0
+                for entry in commands
+            )
+        )
+        transition = evaluate_transition(
+            current,
+            LifecycleState.IN_REVIEW,
+            ActorRole.WORKER,
+            TransitionContext(
+                checks_passed=checks_passed,
+                pr_ready_for_review=pull_request.get("draft") is False,
+            ),
+        )
+        if not transition.allowed:
+            raise SessionError("; ".join(transition.violations))
+        return self._set_state(issue_number, LifecycleState.IN_REVIEW, branch)
+
     def _verify(self, worktree: Path) -> dict[str, object]:
         results = []
         for command in self.policy.verification.focused + self.policy.verification.full:
@@ -466,6 +520,24 @@ class SessionService:
             "pull_request": pull_request,
             "reviewer": self.policy.actors.planner.login,
         }
+
+    def _mark_ready_for_review(self, pull_request: int) -> dict[str, object]:
+        response = self.client.rest(
+            f"repos/{self.policy.repository.full_name}/pulls/{pull_request}"
+        )
+        if not isinstance(response, dict):
+            raise SessionError("pull request response is not an object")
+        if response.get("draft") is False:
+            return {"number": pull_request, "draft": False, "changed": False}
+        node_id = response.get("node_id")
+        if response.get("draft") is not True or not isinstance(node_id, str):
+            raise SessionError("draft pull request is missing its node ID")
+        data = self.client.graphql(_MARK_PULL_REQUEST_READY, {"pullRequestId": node_id})
+        mutation = data.get("markPullRequestReadyForReview")
+        ready = mutation.get("pullRequest") if isinstance(mutation, dict) else None
+        if not isinstance(ready, dict) or ready.get("isDraft") is not False:
+            raise SessionError("GitHub did not mark the pull request ready for review")
+        return {"number": pull_request, "draft": False, "changed": True}
 
     def _open_pull_requests(self, branch: str) -> list[dict[str, object]]:
         owner = self.policy.repository.worker_owner

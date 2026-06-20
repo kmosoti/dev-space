@@ -17,7 +17,7 @@ The versioned repository contract, live Project v2, native issue tree, worker fo
 - Add the workflow and state-machine contract before mutation tooling
 - Add Project v2 snapshot, plan, apply, and drift detection
 - Add bounded issue specifications, native hierarchy, dependencies, and readiness attestation
-- Add isolated worker sessions and draft pull-request handoff
+- Add isolated worker sessions and gated draft-to-review handoff
 - Add repository templates, checks, ownership, and governance reconciliation
 
 ## Non-goals
@@ -57,11 +57,11 @@ Policy schema v1 rejects unsupported future versions. Existing unowned Project r
 
 ## Rollout
 
-Open a draft bootstrap pull request from the worker fork. After human review and merge, activate the main ruleset only when both required checks exist on the default branch.
+Open a draft bootstrap pull request from the worker fork. After policy-pinned verification passes, mark it ready and request human review. After human review and merge, activate the main ruleset only when both required checks exist on the default branch.
 
 ## Rollback
 
-Close the draft pull request, delete its worker branch, and revert the control-plane commit. Live Project items remain auditable and repository ruleset activation remains gated.
+Close the bootstrap pull request, delete its worker branch, and revert the control-plane commit. Live Project items remain auditable and repository ruleset activation remains gated.
 
 ## Dependencies
 
@@ -74,7 +74,7 @@ None
 - [ ] The complete Epic and blocked-by issue tree exists with native relationships
 - [ ] Worker identity is isolated to a fork and cannot merge the target repository
 - [ ] All local quality gates pass
-- [ ] A single draft bootstrap pull request is available for human review
+- [ ] A single verified bootstrap pull request is ready for human review
 
 ## Unresolved Decisions
 

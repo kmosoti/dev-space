@@ -8,7 +8,7 @@ import typer
 from dev_space.aop import plugin_command
 from dev_space.control_plane.sessions import SessionService
 
-app = typer.Typer(help="Issue-scoped worker sessions, worktrees, and draft-PR handoff")
+app = typer.Typer(help="Issue-scoped worker sessions and verified PR handoff")
 
 
 @app.command()
@@ -28,7 +28,7 @@ def handoff(
     number: int = typer.Argument(..., min=1),
     repo: Path | None = typer.Option(None, "--repo", help="Repository path"),
 ):
-    """Verify, push, and create or update one draft pull request."""
+    """Verify, push, mark the pull request ready, and request human review."""
     journal = SessionService(repo).handoff(number)
     typer.echo(journal.model_dump_json(indent=2))
 

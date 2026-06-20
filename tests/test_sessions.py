@@ -42,6 +42,14 @@ class SessionClient:
             return []
         return payload or {}
 
+    def graphql(self, query, variables=None):
+        self.calls.append(("graphql", query, variables))
+        return {
+            "markPullRequestReadyForReview": {
+                "pullRequest": {"number": 70, "isDraft": False}
+            }
+        }
+
 
 class SessionIssues:
     def __init__(self, body):
@@ -49,6 +57,7 @@ class SessionIssues:
         self.states = []
         self.policy = None
         self.issues = self
+        self.status = LifecycleState.READY
 
     def issue_with_project_item(self, number):
         return self.get(number), ProjectItemSnapshot(
@@ -57,7 +66,10 @@ class SessionIssues:
             repository="kmosoti/dev-space",
             number=number,
             title="Add control-plane contracts",
-            field_values={"Status": "Ready", "Execution": "Agent-ready"},
+            field_values={
+                "Status": self.status.value,
+                "Execution": "Agent-ready",
+            },
         )
 
     def get(self, number):
@@ -69,6 +81,7 @@ class SessionIssues:
 
     def set_project_state(self, number, state, *, development_branch=None):
         self.states.append((number, state, development_branch))
+        self.status = state
 
     @staticmethod
     def _parent_from_body(body):
@@ -171,11 +184,23 @@ def test_handoff_is_journaled_and_never_calls_merge(session_repo, tmp_path):
         "number": 55,
         "draft": True,
     }
+    instance._mark_ready_for_review = lambda number: {
+        "number": number,
+        "draft": False,
+    }
     instance._request_review = lambda number: {"pull_request": number}
 
     journal = instance.handoff(103)
 
     assert journal.status == OperationStatus.COMPLETE
+    assert [step.name for step in journal.steps] == [
+        "verify",
+        "push",
+        "pull_request",
+        "ready_for_review",
+        "review_request",
+        "project_state",
+    ]
     assert instance.issue_service.states[-1][1] == LifecycleState.IN_REVIEW
     assert not any("merge" in call[0] for call in client.calls)
 
@@ -234,7 +259,11 @@ def test_start_failure_is_journaled_and_recoverable(
 def test_handoff_failure_status_and_recovery(session_repo, tmp_path, monkeypatch):
     instance, _ = service(session_repo, tmp_path)
     instance.start(105)
-    monkeypatch.setattr(instance, "_verify", lambda worktree: {"commands": []})
+    monkeypatch.setattr(
+        instance,
+        "_verify",
+        lambda worktree: {"commands": [{"command": "true", "returncode": 0}]},
+    )
     monkeypatch.setattr(
         instance,
         "_push",
@@ -249,6 +278,11 @@ def test_handoff_failure_status_and_recovery(session_repo, tmp_path, monkeypatch
 
     monkeypatch.setattr(instance, "_push", lambda *args: {"remote": "fork"})
     monkeypatch.setattr(instance, "_pull_request", lambda *args: {"number": 56})
+    monkeypatch.setattr(
+        instance,
+        "_mark_ready_for_review",
+        lambda number: {"number": number, "draft": False},
+    )
     monkeypatch.setattr(instance, "_request_review", lambda number: {"number": number})
     recovered = instance.recover(105)
     assert recovered.status == OperationStatus.COMPLETE
@@ -346,6 +380,80 @@ def test_pull_request_create_update_duplicate_and_review(
     )
     with pytest.raises(SessionError, match="multiple open"):
         instance._pull_request(101, "mutation/issue-101-test", verification)
+
+
+def test_mark_ready_for_review_is_graphql_and_idempotent(
+    session_repo, tmp_path, monkeypatch
+):
+    instance, client = service(session_repo, tmp_path)
+    monkeypatch.setattr(
+        client,
+        "rest",
+        lambda *args, **kwargs: {"number": 70, "node_id": "PR_NODE", "draft": True},
+    )
+
+    changed = instance._mark_ready_for_review(70)
+
+    assert changed == {"number": 70, "draft": False, "changed": True}
+    graphql_call = next(call for call in client.calls if call[0] == "graphql")
+    assert "markPullRequestReadyForReview" in graphql_call[1]
+    assert graphql_call[2] == {"pullRequestId": "PR_NODE"}
+
+    monkeypatch.setattr(
+        client,
+        "rest",
+        lambda *args, **kwargs: {"number": 70, "draft": False},
+    )
+    client.calls.clear()
+    unchanged = instance._mark_ready_for_review(70)
+    assert unchanged == {"number": 70, "draft": False, "changed": False}
+    assert client.calls == []
+
+
+def test_mark_ready_for_review_rejects_invalid_github_responses(
+    session_repo, tmp_path, monkeypatch
+):
+    instance, client = service(session_repo, tmp_path)
+    monkeypatch.setattr(client, "rest", lambda *args, **kwargs: None)
+    with pytest.raises(SessionError, match="not an object"):
+        instance._mark_ready_for_review(70)
+
+    monkeypatch.setattr(client, "rest", lambda *args, **kwargs: {"draft": True})
+    with pytest.raises(SessionError, match="missing its node ID"):
+        instance._mark_ready_for_review(70)
+
+    monkeypatch.setattr(
+        client,
+        "rest",
+        lambda *args, **kwargs: {"draft": True, "node_id": "PR_NODE"},
+    )
+    monkeypatch.setattr(client, "graphql", lambda *args, **kwargs: {})
+    with pytest.raises(SessionError, match="did not mark"):
+        instance._mark_ready_for_review(70)
+    assert instance.issue_service.states == []
+
+
+def test_in_review_requires_successful_verification_and_ready_pr(
+    session_repo, tmp_path
+):
+    instance, _ = service(session_repo, tmp_path)
+    instance.issue_service.status = LifecycleState.IN_PROGRESS
+
+    with pytest.raises(SessionError, match="verification checks did not pass"):
+        instance._set_in_review(
+            101,
+            "mutation/issue-101-test",
+            {"commands": []},
+            {"number": 70, "draft": False},
+        )
+    with pytest.raises(SessionError, match="pull request is not ready for review"):
+        instance._set_in_review(
+            101,
+            "mutation/issue-101-test",
+            {"commands": [{"command": "true", "returncode": 0}]},
+            {"number": 70, "draft": True},
+        )
+    assert instance.issue_service.states == []
 
 
 def test_pull_request_uses_target_owner_for_repository_write(

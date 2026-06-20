@@ -75,11 +75,12 @@ the contract fixtures pass.
 | Role | Actor | Allowed operations |
 | --- | --- | --- |
 | Planner/reviewer | `kmosoti` | Create Epics and Decisions, approve specifications, mark work Ready, apply control-plane configuration, resolve or cancel work, approve and merge pull requests |
-| Worker | `kz-harbringer` | Start Ready agent work, create a branch/worktree, push implementation commits, create or update a draft pull request, and hand off for review |
+| Worker | `kz-harbringer` | Start Ready agent work, create a branch/worktree, push implementation commits, maintain a draft pull request, and submit verified work for review |
 | Read-only operator | Either configured actor | Run `doctor`, `plan`, and status commands |
 
 The worker cannot mark its own issue Ready, alter planner-owned state, apply
-repository rules, enable auto-merge, approve, or merge.
+repository rules, enable auto-merge, approve, or merge. It may mark its own
+pull request ready for review only through the verified handoff workflow.
 
 ### Work types
 
@@ -97,7 +98,7 @@ repository rules, enable auto-merge, approve, or merge.
 | Inbox | Needs Definition | Planner | Parent Epic and work type assigned |
 | Needs Definition | Ready | Planner | Specification complete, decisions resolved, dependencies Done, supported risk |
 | Ready | In Progress | Worker via `session start` | Correct worker identity; no active branch, worktree, session, or pull request |
-| In Progress | In Review | Worker via `session handoff` | Checks pass; branch pushed; exactly one draft pull request exists |
+| In Progress | In Review | Worker via `session handoff` | Checks pass; final branch head is pushed; exactly one pull request is marked ready for review |
 | In Review | Done | Planner | Pull request merged by the human actor and completion evidence recorded |
 | Any nonterminal state | Blocked | Planner or Worker | Blocker and unblock condition recorded |
 | Blocked | Previous active state | Planner | Blocker resolved and all gates still pass |
@@ -123,7 +124,7 @@ so read-only CI can validate it without accessing the user-owned Project.
 | `issue transition` | Lifecycle state | Actor allowed by transition table |
 | `session status` | None | Either |
 | `session start` | Local session plus In Progress state | Worker |
-| `session handoff` | Branch, draft PR, In Review state | Worker |
+| `session handoff` | Branch, PR ready-for-review state, review request, In Review state | Worker |
 | `session recover` | Resume an incomplete operation | Same actor that began it |
 | `session cleanup` | Local branch/worktree/session cleanup | Planner unless no remote state exists |
 
@@ -136,9 +137,12 @@ its idempotency key, observed remote version, result, and next recovery action.
 - `session start` reserves and locks session state, validates remote state,
   creates the branch and worktree, configures worktree-local identity, writes
   generated instructions, and moves the issue to In Progress last.
+- A pull request may remain draft while implementation commits are collected.
 - `session handoff` validates correspondence, runs configured checks, pushes
-  the branch, creates or updates one draft pull request, requests review, and
-  moves the issue to In Review last.
+  the final branch head, creates or updates one draft pull request, marks it
+  ready for review, requests review, and moves the issue to In Review last.
+- A failed handoff leaves the pull request draft and the issue In Progress; a
+  retry resumes from the journal rather than bypassing verification.
 - A retry resumes from the journal rather than recreating resources.
 - Stale state is inspectable with `session status` and recoverable through
   `session recover`; the CLI never asks users to delete unexplained state.
@@ -209,10 +213,10 @@ EPIC-CP0  GitHub Control Plane v1
 |   +-- CP5-05  Issue-scoped instruction generation              <- CP1-02, CP1-06
 |   `-- CP5-06  Retry-safe `session start`                        <- CP5-02, CP5-03, CP5-04, CP5-05
 |
-+-- EPIC-CP6  Verification and draft-PR handoff                  <- EPIC-CP5
++-- EPIC-CP6  Verification and ready-for-review handoff          <- EPIC-CP5
 |   +-- CP6-01  Focused/full verification runner                 <- CP1-02, CP1-06
 |   +-- CP6-02  PR-body model and template validation            <- CP4-02
-|   +-- CP6-03  Push and single-draft-PR reconciliation          <- CP2-01, CP5-03
+|   +-- CP6-03  Push and draft-to-ready PR reconciliation        <- CP2-01, CP5-03
 |   +-- CP6-04  Retry-safe `session handoff`                      <- CP6-01, CP6-02, CP6-03
 |   `-- CP6-05  `session status`, `recover`, and `cleanup`        <- CP5-02, CP6-04
 |
@@ -227,7 +231,7 @@ EPIC-CP0  GitHub Control Plane v1
 `-- EPIC-CP8  Dev-space dogfood rollout                         <- EPIC-CP7
     +-- CP8-01  Apply and verify full-fidelity Project v2        <- CP3-07, CP3-08, CP3-10
     +-- CP8-02  Create pilot Epic and bounded Agent-ready Change <- CP4-05, CP8-01
-    +-- CP8-03  Run start/handoff pilot through draft PR         <- CP5-06, CP6-05, CP7-03
+    +-- CP8-03  Run start/handoff pilot through ready PR         <- CP5-06, CP6-05, CP7-03
     +-- CP8-04  Human review, merge, and Done transition          <- CP8-03
     `-- CP8-05  Friction report and follow-up issue tree          <- CP8-04
 ```
@@ -386,15 +390,17 @@ cannot replace tracked root policy.
 Exit gate: retries converge on one branch/worktree/session, stale state is
 diagnosable, and the human remote and identity remain unchanged.
 
-### EPIC-CP6: Verification and draft-PR handoff
+### EPIC-CP6: Verification and ready-for-review handoff
 
 Outcome: a worker can hand off verified work without receiving merge authority.
 
 The handoff runs configured focused checks followed by full checks, records
 structured results, pushes through the worker SSH route, and creates or updates
-exactly one draft pull request. The body links exactly one implementation issue
-and contains scope, acceptance evidence, verification, risks, compatibility,
-rollback, and confirmation that unrelated work is excluded.
+exactly one draft pull request. Only after those gates pass does it mark the
+pull request ready and request the configured human reviewer. The body links
+exactly one implementation issue and contains scope, acceptance evidence,
+verification, risks, compatibility, rollback, and confirmation that unrelated
+work is excluded.
 
 Exit gate: interruption at every external step can be resumed without a second
 branch or pull request, and no code path calls merge or enables auto-merge.

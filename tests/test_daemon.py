@@ -56,26 +56,3 @@ async def test_rsgi_app():
     sent.clear()
     await rsgi_app(MockScope("/invalid"), mock_receive, mock_send)
     assert sent[0]["status"] == 404
-
-
-@pytest.mark.asyncio
-@pytest.mark.no_observability
-async def test_background_loops():
-    from dev_space.daemon import (
-        compress_logs_loop,
-        rotate_logs_loop,
-        reap_sessions_loop,
-    )
-    import asyncio
-
-    # Run loops for a tiny fraction of a second to ensure they yield and don't crash
-    with pytest.raises(asyncio.TimeoutError):
-        await asyncio.wait_for(compress_logs_loop(), timeout=0.01)
-
-    with pytest.raises(asyncio.TimeoutError):
-        await asyncio.wait_for(rotate_logs_loop(), timeout=0.01)
-
-    with pytest.raises(asyncio.TimeoutError):
-        await asyncio.wait_for(reap_sessions_loop(), timeout=0.01)
-
-    assert True

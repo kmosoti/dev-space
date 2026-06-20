@@ -28,10 +28,10 @@
   │             Usage: eval "$(dev-space shell-init bash)"                       │
   │ qa          Zero-Trust QA Pipeline Plugin (ADR-008).                         │
   │ gh          GitHub Subcommands (ADR-002)                                     │
-  │ session     Issue-scoped worker sessions, worktrees, and draft-PR handoff    │
+  │ session     Issue-scoped worker sessions and verified PR handoff             │
   │ worktree    Git Worktree Subcommands                                         │
   │ daemon      Daemon Lifecycle Management (ADR-006)                            │
-  │ logs        Log Search & Streaming (ADR-006)                                 │
+  │ logs        Log Search (ADR-006)                                             │
   │ project     GitHub Project v2 control-plane reconciliation                   │
   │ issue       Planner-owned issue specifications and lifecycle transitions     │
   ╰──────────────────────────────────────────────────────────────────────────────╯

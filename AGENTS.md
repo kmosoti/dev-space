@@ -1,7 +1,9 @@
 # Dev-Space agent contract
 
-- Planner and worker roles are separate. The configured worker cannot mark work
-  Ready, change governance, approve, enable auto-merge, or merge.
+- Planner and worker roles are separate. The configured worker cannot mark an
+  issue Ready, change governance, approve, enable auto-merge, or merge. After
+  successful handoff verification, the worker may mark its own draft pull
+  request ready for human review.
 - Epics are plans, not implementation units.
 - One implementation issue maps to one branch, one worktree, and one pull
   request.
