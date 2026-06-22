@@ -1,0 +1,42 @@
+name: Epic
+description: Define an overall outcome and dependency-ordered child work. Epics are never implemented directly.
+title: "[Epic]: "
+labels: ["type:epic", "execution:human-only", "status:needs-definition"]
+body:
+  - type: markdown
+    attributes:
+      value: Epics own plans and child issues, not branches, worktrees, or pull requests.
+  - type: textarea
+    id: objective
+    attributes:
+      label: Objective
+      description: What durable outcome will this Epic produce?
+    validations: {required: true}
+  - type: textarea
+    id: context
+    attributes: {label: Context}
+    validations: {required: true}
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope and child slices
+      description: List the logically bounded child issues or planned slices.
+    validations: {required: true}
+  - type: textarea
+    id: non_goals
+    attributes: {label: Non-goals}
+    validations: {required: true}
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependency tree
+      description: State prerequisite Epics, Decisions, and child ordering.
+    validations: {required: true}
+  - type: textarea
+    id: completion
+    attributes: {label: Completion criteria}
+    validations: {required: true}
+  - type: textarea
+    id: risks
+    attributes: {label: Risks and mitigations}
+    validations: {required: true}

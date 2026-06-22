@@ -1,0 +1,85 @@
+name: Change
+description: Define one independently testable implementation slice.
+title: "[Change]: "
+labels: ["type:change", "status:needs-definition"]
+body:
+  - type: input
+    id: parent
+    attributes:
+      label: Parent Epic
+      placeholder: "#123"
+    validations: {required: true}
+  - type: textarea
+    id: problem
+    attributes: {label: Problem}
+    validations: {required: true}
+  - type: textarea
+    id: current
+    attributes: {label: Current behavior}
+    validations: {required: true}
+  - type: textarea
+    id: required
+    attributes: {label: Required behavior}
+    validations: {required: true}
+  - type: textarea
+    id: scope
+    attributes: {label: Scope}
+    validations: {required: true}
+  - type: textarea
+    id: non_goals
+    attributes: {label: Non-goals}
+    validations: {required: true}
+  - type: textarea
+    id: design
+    attributes: {label: Design}
+    validations: {required: true}
+  - type: textarea
+    id: affected
+    attributes: {label: Affected components}
+    validations: {required: true}
+  - type: textarea
+    id: security
+    attributes: {label: Security}
+    validations: {required: true}
+  - type: textarea
+    id: compatibility
+    attributes: {label: Compatibility}
+    validations: {required: true}
+  - type: textarea
+    id: tests
+    attributes: {label: Tests and verification}
+    validations: {required: true}
+  - type: textarea
+    id: rollout
+    attributes: {label: Rollout}
+    validations: {required: true}
+  - type: textarea
+    id: rollback
+    attributes: {label: Rollback}
+    validations: {required: true}
+  - type: textarea
+    id: dependencies
+    attributes: {label: Dependencies}
+    validations: {required: true}
+  - type: textarea
+    id: acceptance
+    attributes: {label: Acceptance criteria}
+    validations: {required: true}
+  - type: textarea
+    id: decisions
+    attributes:
+      label: Unresolved decisions
+      description: Enter None before this issue can become Ready.
+    validations: {required: true}
+  - type: dropdown
+    id: execution
+    attributes:
+      label: Execution
+      options: [Agent-ready, Agent-assisted, Human-only]
+    validations: {required: true}
+  - type: dropdown
+    id: risk
+    attributes:
+      label: Risk
+      options: [Low, Medium, High]
+    validations: {required: true}

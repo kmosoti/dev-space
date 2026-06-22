@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Maintainer escape path
+    url: https://github.com/kmosoti/dev-space/discussions
+    about: Maintainers may capture exceptional work here before converting it into a typed issue.

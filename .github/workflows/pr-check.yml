@@ -1,0 +1,76 @@
+name: PR Check Gate
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    branches: [ main ]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+jobs:
+  fast-feedback:
+    name: Fast QA Feedback
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Setup Python
+        run: uv python install 3.12
+
+      - name: Setup Rust
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup component add clippy --toolchain stable
+          rustup default stable
+
+      - name: Sync dependencies
+        run: uv sync --all-extras --dev
+
+      - name: Check for Suppression Tokens
+        run: |
+          if grep -rqE "#\s*(noqa|ruff:|fmt:skip|vulture:)" src/ tests/; then
+              echo "Security Exception: Inline directive suppression token discovered."
+              exit 1
+          fi
+          echo "No suppressions found."
+
+      - name: Vulture Dead-Code Scan
+        run: uv run vulture
+
+      - name: Ruff Lint & Format
+        run: |
+          uv run ruff check
+          uv run ruff format --check
+
+      - name: Pytest Branch Coverage
+        run: uv run pytest
+
+      - name: Pip Audit
+        run: uv run pip-audit
+
+      - name: Rust Tests
+        env:
+          PYO3_PYTHON: ${{ github.workspace }}/.venv/bin/python
+        run: cargo test --locked
+
+      - name: Rust Clippy
+        env:
+          PYO3_PYTHON: ${{ github.workspace }}/.venv/bin/python
+        run: cargo clippy --locked --all-targets --all-features -- -D warnings
+
+      - name: Contract-Critical Mutation Tests
+        run: |
+          uv run mutmut run --max-children 4 \
+            'dev_space.control_plane.lifecycle.*' \
+            'dev_space.control_plane.pr_contract.*' \
+            'dev_space.control_plane.authorization.*'
+          uv run mutmut export-cicd-stats
+          uv run python -m dev_space.control_plane.mutation_score --minimum 80
