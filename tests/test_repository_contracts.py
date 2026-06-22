@@ -108,7 +108,9 @@ def test_pull_request_gate_runs_contract_critical_mutation_tests():
     assert "dev_space.control_plane.pr_contract.*" in workflow
     assert "dev_space.control_plane.authorization.*" in workflow
     assert "mutmut export-cicd-stats" in workflow
-    assert "mutation_score --minimum 80" in workflow
+    assert "mutation_score" in workflow
+    assert "--policy .dev-space/quality.toml" in workflow
+    assert "--target python-repository" in workflow
 
 
 @pytest.mark.parametrize(

@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "target": "python-repository",
+  "tool": "mutmut",
+  "generated_at": "2026-06-20T00:00:00Z",
+  "outcomes": {
+    "killed": 80,
+    "survived": 10,
+    "suspicious": 2,
+    "timeout": 3,
+    "segfault": 4,
+    "no_tests": 1,
+    "skipped": 5,
+    "unviable": 7,
+    "equivalent": 0
+  },
+  "equivalent_mutants": []
+}

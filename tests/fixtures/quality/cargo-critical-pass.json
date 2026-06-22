@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "target": "rust-contract-critical",
+  "tool": "cargo-mutants",
+  "generated_at": "2026-06-21T00:00:00Z",
+  "outcomes": {
+    "caught": 90,
+    "missed": 5,
+    "timeout": 5,
+    "unviable": 12,
+    "skipped": 3,
+    "equivalent": 0
+  },
+  "equivalent_mutants": []
+}

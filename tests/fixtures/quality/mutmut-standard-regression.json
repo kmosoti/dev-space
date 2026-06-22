@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "target": "python-repository",
+  "tool": "mutmut",
+  "generated_at": "2026-06-21T00:00:00Z",
+  "outcomes": {
+    "killed": 79,
+    "survived": 21,
+    "equivalent": 0
+  },
+  "equivalent_mutants": []
+}

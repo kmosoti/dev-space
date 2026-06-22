@@ -4,7 +4,7 @@ from dev_space import executor
 from dev_space.aop import plugin_command
 
 logger = structlog.get_logger()
-app = typer.Typer(name="qa", help="Zero-Trust QA Pipeline Plugin (ADR-008).")
+app = typer.Typer(name="qa", help="Zero-Trust QA Pipeline Plugin (ADR-002).")
 
 
 @app.command()
@@ -54,8 +54,10 @@ def enforce():
                 "python",
                 "-m",
                 "dev_space.control_plane.mutation_score",
-                "--minimum",
-                "80",
+                "--policy",
+                ".dev-space/quality.toml",
+                "--target",
+                "python-repository",
             ],
         ),
     ]

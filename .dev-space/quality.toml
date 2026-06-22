@@ -1,0 +1,36 @@
+schema_version = 1
+exclusions = []
+
+[tiers.critical]
+minimum_score = 90.0
+target_score = 100.0
+
+[tiers.standard]
+minimum_score = 80.0
+target_score = 95.0
+
+[tiers.supporting]
+minimum_score = 70.0
+target_score = 90.0
+
+[tools.mutmut]
+assessed_outcomes = ["killed", "survived", "timeout", "suspicious", "no_test", "runtime_error"]
+excluded_outcomes = ["unviable", "skipped", "equivalent"]
+aliases = { killed = "killed", survived = "survived", timeout = "timeout", suspicious = "suspicious", no_tests = "no_test", segfault = "runtime_error", check_was_interrupted_by_user = "runtime_error", unviable = "unviable", skipped = "skipped", equivalent = "equivalent" }
+
+[tools.cargo-mutants]
+assessed_outcomes = ["killed", "survived", "timeout", "suspicious", "no_test", "runtime_error"]
+excluded_outcomes = ["unviable", "skipped", "equivalent"]
+aliases = { caught = "killed", missed = "survived", timeout = "timeout", unviable = "unviable", skipped = "skipped", equivalent = "equivalent" }
+
+[[targets]]
+name = "python-repository"
+tool = "mutmut"
+tier = "standard"
+baseline_score = 80.0
+
+[[targets]]
+name = "rust-contract-critical"
+tool = "cargo-mutants"
+tier = "critical"
+baseline_score = 90.0
