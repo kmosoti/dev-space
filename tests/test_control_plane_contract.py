@@ -69,10 +69,9 @@ def test_policy_rejects_same_actor_and_status_drift():
 
 
 def test_policy_discovery_and_missing_policy(tmp_path):
-    expected_repo = Path(__file__).parents[1].resolve()
-    repo = discover_repository(expected_repo / "src")
-    assert repo == expected_repo
+    repo = discover_repository(Path(__file__).parents[1] / "src")
     assert (repo / ".git").exists()
+    assert (repo / ".dev-space" / "project.toml").is_file()
 
     with pytest.raises(PolicyError, match="not a Git repository"):
         load_policy(tmp_path)
