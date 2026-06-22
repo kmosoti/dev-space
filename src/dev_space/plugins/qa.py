@@ -35,13 +35,29 @@ def scan():
 @plugin_command(resource_lock="qa-enforce")
 def enforce():
     """
-    Executes heavy enforcement: Pytest execution and Mutmut mutation elimination.
+    Executes heavy enforcement: Pytest and thresholded mutation testing.
     """
     logger.info("Initiating heavy QA enforcement...")
 
     tools = [
         ("pytest", ["uv", "run", "pytest"]),
         ("mutmut", ["uv", "run", "mutmut", "run"]),
+        (
+            "mutmut stats",
+            ["uv", "run", "mutmut", "export-cicd-stats"],
+        ),
+        (
+            "mutation score",
+            [
+                "uv",
+                "run",
+                "python",
+                "-m",
+                "dev_space.control_plane.mutation_score",
+                "--minimum",
+                "80",
+            ],
+        ),
     ]
 
     for name, cmd in tools:
@@ -49,5 +65,5 @@ def enforce():
         result = executor.execute_agent_command(cmd[0], cmd[1:])
         logger.info(f"{name} passed", output=result.strip()[:200])
 
-    logger.info("QA Enforcement complete. 99% Boundary secured.")
+    logger.info("QA Enforcement complete. Required mutation score achieved.")
     typer.echo('{"status": "success", "message": "QA Enforcement Passed"}')

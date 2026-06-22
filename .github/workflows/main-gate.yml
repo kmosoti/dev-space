@@ -64,12 +64,8 @@ jobs:
           PYO3_PYTHON: ${{ github.workspace }}/.venv/bin/python
         run: cargo clippy --locked --all-targets --all-features -- -D warnings
 
-      - name: Mutmut Mutation Elimination
+      - name: Mutmut Mutation Score
         run: |
-          uv run mutmut run
-          SURVIVED_COUNT=$(uv run mutmut results | grep -c "survived" || true)
-          if [ "$SURVIVED_COUNT" -gt 0 ]; then
-              echo "Pipeline Enforcement Failure: $SURVIVED_COUNT code mutations survived."
-              uv run mutmut results
-              exit 1
-          fi
+          uv run mutmut run --max-children 4
+          uv run mutmut export-cicd-stats
+          uv run python -m dev_space.control_plane.mutation_score --minimum 80

@@ -38,7 +38,13 @@ def pytest_collection_modifyitems(items):
         tree = ast.parse(source)
         nodes = list(ast.walk(tree))
 
-        has_assert = any(isinstance(node, ast.Assert) for node in nodes)
+        has_assert = any(
+            isinstance(node, ast.Assert)
+            and not (
+                isinstance(node.test, ast.Constant) and bool(node.test.value) is True
+            )
+            for node in nodes
+        )
         has_property = any(
             isinstance(node, ast.Attribute) and getattr(node, "attr", "") == "given"
             for node in nodes
@@ -51,7 +57,7 @@ def pytest_collection_modifyitems(items):
         if not (has_assert or has_property or has_snapshot):
             pytest.fail(
                 f"Agent Security Boundary Violation: Test '{item.name}' "
-                f"lacks explicit logic verification targets."
+                "lacks a non-trivial explicit logic verification target."
             )
 
 

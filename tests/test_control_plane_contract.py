@@ -5,7 +5,12 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from dev_space.control_plane.authorization import authorize, require_authorized
+from dev_space.control_plane.authorization import (
+    AuthorizationError,
+    AuthorizationResult,
+    authorize,
+    require_authorized,
+)
 from dev_space.control_plane.journal import (
     JournalStore,
     OperationJournal,
@@ -65,7 +70,8 @@ def test_policy_rejects_same_actor_and_status_drift():
 
 def test_policy_discovery_and_missing_policy(tmp_path):
     repo = discover_repository(Path(__file__).parents[1] / "src")
-    assert repo == Path(__file__).parents[1]
+    assert repo.name == "dev-space"
+    assert (repo / ".git").exists()
 
     with pytest.raises(PolicyError, match="not a Git repository"):
         load_policy(tmp_path)
@@ -179,13 +185,33 @@ def test_command_authorization_uses_configured_actor_roles():
     planner_apply = authorize("project.apply", "kmosoti", policy)
     worker_apply = authorize("project.apply", "kz-harbringer", policy)
     worker_start = authorize("session.start", "kz-harbringer", policy)
-    unknown = authorize("project.plan", "somebody-else", policy)
+    unconfigured = authorize("project.plan", "somebody-else", policy)
+    unknown = authorize("not-a-command", "kmosoti", policy)
 
-    assert planner_apply.allowed is True
-    assert worker_apply.allowed is False
-    assert worker_start.allowed is True
-    assert unknown.allowed is False
+    assert planner_apply == AuthorizationResult(True, ActorRole.PLANNER)
+    assert worker_apply == AuthorizationResult(
+        False,
+        ActorRole.WORKER,
+        "worker is not allowed to run project.apply",
+    )
+    assert worker_start == AuthorizationResult(True, ActorRole.WORKER)
+    assert unconfigured == AuthorizationResult(
+        False, None, "unconfigured GitHub actor: somebody-else"
+    )
+    assert unknown == AuthorizationResult(
+        False, None, "unknown command capability: not-a-command"
+    )
     assert require_authorized("project.apply", "kmosoti", policy) == ActorRole.PLANNER
+
+    with pytest.raises(
+        AuthorizationError,
+        match=r"worker is not allowed to run project\.apply",
+    ):
+        require_authorized("project.apply", "kz-harbringer", policy)
+    with pytest.raises(
+        AuthorizationError, match="unknown command capability: not-a-command"
+    ):
+        require_authorized("not-a-command", "kmosoti", policy)
 
 
 def test_operation_journal_round_trip_and_atomic_update(tmp_path):

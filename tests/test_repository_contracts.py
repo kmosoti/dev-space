@@ -1,11 +1,56 @@
 from pathlib import Path
+import tomllib
 
 import pytest
 import yaml
+from mutmut.configuration import Config
 
 pytestmark = pytest.mark.no_observability
 
 REPOSITORY_ROOT = Path(__file__).parents[1]
+
+
+def test_quality_configuration_cannot_be_shallowly_weakened():
+    document = tomllib.loads(
+        (REPOSITORY_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    )
+    tool = document["tool"]
+
+    assert tool["coverage"]["run"]["branch"] is True
+    assert tool["coverage"]["report"]["fail_under"] >= 90
+    assert tool["pytest"]["ini_options"]["filterwarnings"] == ["error"]
+    assert set(tool["ruff"]["lint"]["select"]) >= {
+        "F",
+        "E",
+        "W",
+        "RUF",
+        "PGH",
+        "BLE",
+    }
+    assert set(tool["ruff"]["lint"]["ignore"]) <= {"E501", "F841"}
+    assert tool["ruff"]["lint"]["per-file-ignores"] == {"tests/*": ["S101"]}
+
+
+def test_mutation_configuration_loads_and_covers_all_python_source():
+    Config.reset()
+    config = Config.get()
+
+    assert config.source_paths == [Path("src/dev_space")]
+    assert set(config.also_copy) >= {
+        Path(".github"),
+        Path(".dev-space"),
+        Path("README.md"),
+        Path("AGENTS.md"),
+    }
+    assert config.pytest_add_cli_args == [
+        "--no-cov",
+        "--strict-markers",
+        "--capture=sys",
+    ]
+    assert config.pytest_add_cli_args_test_selection == ["tests/"]
+    assert config.mutate_only_covered_lines is False
+    assert config.only_mutate == []
+    assert config.do_not_mutate == []
 
 
 @pytest.mark.parametrize(
@@ -50,6 +95,20 @@ def test_python_and_rust_quality_gates_are_enforced(workflow_name):
     assert (
         "cargo clippy --locked --all-targets --all-features -- -D warnings" in workflow
     )
+    assert "continue-on-error" not in workflow
+
+
+def test_pull_request_gate_runs_contract_critical_mutation_tests():
+    workflow = (REPOSITORY_ROOT / ".github" / "workflows" / "pr-check.yml").read_text(
+        encoding="utf-8"
+    )
+
+    assert "mutmut run" in workflow
+    assert "dev_space.control_plane.lifecycle.*" in workflow
+    assert "dev_space.control_plane.pr_contract.*" in workflow
+    assert "dev_space.control_plane.authorization.*" in workflow
+    assert "mutmut export-cicd-stats" in workflow
+    assert "mutation_score --minimum 80" in workflow
 
 
 @pytest.mark.parametrize(

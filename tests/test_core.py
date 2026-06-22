@@ -1,12 +1,14 @@
+import fcntl
 import os
 import signal
 import sys
 from unittest.mock import patch
 
 import pytest
+import structlog
 
-from dev_space.config import DevSpaceSettings
 from dev_space.aop import GracefulShutdown, tool_lock, setup_observability
+from dev_space.config import DevSpaceSettings
 
 
 @pytest.mark.no_observability
@@ -19,13 +21,18 @@ def test_config_load():
 
 
 @pytest.mark.no_observability
-def test_setup_observability():
-    # Test quiet mode
-    setup_observability(quiet=True, verbose=False)
-    # Test verbose mode
-    setup_observability(quiet=False, verbose=True)
-    # Just asserting it doesn't crash since structlog config is global
-    assert True
+def test_setup_observability(monkeypatch):
+    monkeypatch.setattr(sys.stdout, "isatty", lambda: False)
+    setup_observability(quiet=True)
+
+    processors = structlog.get_config()["processors"]
+    assert isinstance(processors[-1], structlog.processors.JSONRenderer)
+
+    monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
+    setup_observability(verbose=True)
+
+    processors = structlog.get_config()["processors"]
+    assert isinstance(processors[-1], structlog.dev.ConsoleRenderer)
 
 
 @pytest.mark.no_observability
@@ -48,8 +55,10 @@ def test_graceful_shutdown():
 
 @pytest.mark.no_observability
 def test_tool_lock():
-    # Tests that the flock wrapper acquires and releases safely
-    with tool_lock("test-lock"):
-        lock_file = os.path.expanduser("~/.dev-space/locks/test-lock.lock")
-        if not os.path.exists("/var/lock/dev-space"):
-            assert os.path.exists(lock_file)
+    with patch("dev_space.aop.fcntl.flock") as flock:
+        with tool_lock("test-lock"):
+            assert flock.call_args_list[0].args[1] == fcntl.LOCK_EX
+
+        assert flock.call_args_list[1].args[1] == fcntl.LOCK_UN
+        assert flock.call_args_list[0].args[0] is flock.call_args_list[1].args[0]
+        assert flock.call_args_list[1].args[0].closed is True

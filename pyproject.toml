@@ -88,6 +88,8 @@ show_missing = true
 
 # --- MUTATION TESTING ---
 [tool.mutmut]
-paths_to_mutate = "src/"
-tests_dir = "tests/"
-runner = "uv run pytest"
+source_paths = ["src/dev_space"]
+also_copy = [".github", ".dev-space", "README.md", "AGENTS.md"]
+pytest_add_cli_args = ["--no-cov", "--strict-markers", "--capture=sys"]
+pytest_add_cli_args_test_selection = ["tests/"]
+mutate_only_covered_lines = false

@@ -37,7 +37,7 @@ def test_qa_scan_failure(mock_exec):
 @patch("dev_space.executor.execute_agent_command")
 def test_qa_enforce(mock_exec, snapshot):
     """
-    Validates that dev-space qa enforce executes pytest and mutmut.
+    Validates that dev-space qa enforce executes and scores mutation testing.
     """
     mock_exec.return_value = "Mocked execution success"
 
@@ -45,6 +45,22 @@ def test_qa_enforce(mock_exec, snapshot):
     assert result.exit_code == 0
     assert "Mocked execution success" in result.stdout
     assert "QA Enforcement Passed" in result.stdout
+    assert [call.args for call in mock_exec.call_args_list] == [
+        ("uv", ["run", "pytest"]),
+        ("uv", ["run", "mutmut", "run"]),
+        ("uv", ["run", "mutmut", "export-cicd-stats"]),
+        (
+            "uv",
+            [
+                "run",
+                "python",
+                "-m",
+                "dev_space.control_plane.mutation_score",
+                "--minimum",
+                "80",
+            ],
+        ),
+    ]
 
 
 @pytest.mark.no_observability

@@ -15,8 +15,8 @@ and log-file search primitives.
   and repository authority for planner and worker actors.
 - **GitHub control plane**: Typed Project v2 snapshot, reconciliation, issue
   hierarchy, dependency, readiness, and lifecycle contracts.
-- **Verification gates**: Ruff, Pytest coverage, Vulture, dependency audit, Rust
-  tests, Clippy, and pull-request contract validation.
+- **Verification gates**: Ruff, Pytest branch coverage, mutation score, Vulture,
+  dependency audit, Rust tests, Clippy, and pull-request contract validation.
 - **Health daemon**: Granian RSGI health and metrics endpoints.
 
 ---
@@ -97,12 +97,20 @@ uv run dev-space logs search gh --query "Exception"
 
 `dev-space` uses repository-local quality and control-plane checks. Tests enforce
 structured telemetry on operational paths and explicit verification targets.
+Branch coverage has a 90% repository floor. It is deliberately not a 100%
+target: forcing every defensive or platform-specific line to execute tends to
+reward trivial assertions and test-only implementation choices. Critical code
+is instead mutation tested; pull requests and `main` must kill at least 80% of
+assessed mutations. Constant-truth assertions, inline lint suppressions,
+weakened QA configuration, warnings, dead code, and vulnerable dependencies are
+separate failures. Small safety-critical modules may still require 100% branch
+coverage when their contract justifies it.
 
 To run the pipeline locally:
 ```bash
 # Run lightweight static analysis (Ruff, Vulture, Pip-Audit)
 uv run dev-space qa scan
 
-# Run heavy enforcement (Pytest execution and Mutmut mutation elimination)
+# Run heavy enforcement (Pytest plus an enforced Mutmut score)
 uv run dev-space qa enforce
 ```

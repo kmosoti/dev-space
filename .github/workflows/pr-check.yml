@@ -65,3 +65,12 @@ jobs:
         env:
           PYO3_PYTHON: ${{ github.workspace }}/.venv/bin/python
         run: cargo clippy --locked --all-targets --all-features -- -D warnings
+
+      - name: Contract-Critical Mutation Tests
+        run: |
+          uv run mutmut run --max-children 4 \
+            'dev_space.control_plane.lifecycle.*' \
+            'dev_space.control_plane.pr_contract.*' \
+            'dev_space.control_plane.authorization.*'
+          uv run mutmut export-cicd-stats
+          uv run python -m dev_space.control_plane.mutation_score --minimum 80
