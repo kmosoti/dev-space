@@ -26,7 +26,7 @@
   │ bootstrap   Bootstraps the isolated dev-space environment.                   │
   │ shell-init  Outputs a sourceable shell profile.                              │
   │             Usage: eval "$(dev-space shell-init bash)"                       │
-  │ qa          Zero-Trust QA Pipeline Plugin (ADR-008).                         │
+  │ qa          Zero-Trust QA Pipeline Plugin (ADR-002).                         │
   │ gh          GitHub Subcommands (ADR-002)                                     │
   │ session     Issue-scoped worker sessions and verified PR handoff             │
   │ worktree    Git Worktree Subcommands                                         │

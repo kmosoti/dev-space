@@ -56,8 +56,10 @@ def test_qa_enforce(mock_exec, snapshot):
                 "python",
                 "-m",
                 "dev_space.control_plane.mutation_score",
-                "--minimum",
-                "80",
+                "--policy",
+                ".dev-space/quality.toml",
+                "--target",
+                "python-repository",
             ],
         ),
     ]

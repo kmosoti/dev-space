@@ -100,8 +100,10 @@ structured telemetry on operational paths and explicit verification targets.
 Branch coverage has a 90% repository floor. It is deliberately not a 100%
 target: forcing every defensive or platform-specific line to execute tends to
 reward trivial assertions and test-only implementation choices. Critical code
-is instead mutation tested; pull requests and `main` must kill at least 80% of
-assessed mutations. Constant-truth assertions, inline lint suppressions,
+is instead mutation tested under the versioned `.dev-space/quality.toml`
+policy. The repository-wide Mutmut target retains its 80% bootstrap baseline as
+a non-regression ratchet, while critical targets require at least 90% and aim
+for 100%. Constant-truth assertions, inline lint suppressions,
 weakened QA configuration, warnings, dead code, and vulnerable dependencies are
 separate failures. Small safety-critical modules may still require 100% branch
 coverage when their contract justifies it.

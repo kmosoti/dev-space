@@ -73,4 +73,6 @@ jobs:
             'dev_space.control_plane.pr_contract.*' \
             'dev_space.control_plane.authorization.*'
           uv run mutmut export-cicd-stats
-          uv run python -m dev_space.control_plane.mutation_score --minimum 80
+          uv run python -m dev_space.control_plane.mutation_score \
+            --policy .dev-space/quality.toml \
+            --target python-repository
