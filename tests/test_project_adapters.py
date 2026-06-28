@@ -29,10 +29,13 @@ class QueueClient:
 
 
 class EndpointClient:
-    def __init__(self, *, workflows=True, auto_merge=True, rulesets=None):
+    def __init__(
+        self, *, workflows=True, auto_merge=True, rulesets=None, ruleset_detail=None
+    ):
         self.workflows = workflows
         self.auto_merge = auto_merge
         self.rulesets = list(rulesets or [])
+        self.ruleset_detail = ruleset_detail
         self.calls = []
 
     def current_user(self):
@@ -46,6 +49,8 @@ class EndpointClient:
             return {"type": "file"} if self.workflows else {}
         if endpoint.endswith("/rulesets") and method == "GET":
             return self.rulesets
+        if "/rulesets/" in endpoint and method == "GET":
+            return self.ruleset_detail
         if endpoint == "repos/kmosoti/dev-space" and method == "GET":
             return {"allow_auto_merge": self.auto_merge}
         return payload or {}
@@ -237,6 +242,75 @@ def test_project_service_gates_ruleset_until_workflows_land(monkeypatch):
 
     assert ruleset.action == ReconciliationAction.HUMAN_ACTION_REQUIRED
     assert "before activating" in ruleset.detail
+
+
+def test_project_service_leaves_matching_ruleset_unchanged(monkeypatch):
+    configured = load_policy(Path(__file__).parents[1])
+    service = ProjectService(configured, client=EndpointClient())
+    desired = service._ruleset_payload()
+    live = {
+        **desired,
+        "id": 42,
+        "rules": [
+            (
+                {
+                    **rule,
+                    "parameters": {
+                        **rule["parameters"],
+                        "required_reviewers": [],
+                        "allowed_merge_methods": ["squash"],
+                    },
+                }
+                if rule["type"] == "pull_request"
+                else rule
+            )
+            for rule in desired["rules"]
+        ],
+    }
+    client = EndpointClient(
+        workflows=True,
+        auto_merge=False,
+        rulesets=[{"id": 42, "name": configured.ruleset.name}],
+        ruleset_detail=live,
+    )
+    service = ProjectService(configured, client=client)
+    monkeypatch.setattr(service, "locate", lambda: ([{"number": 6}], empty_project()))
+
+    report = service.plan()
+    service._apply_repository_settings()
+
+    ruleset = next(entry for entry in report.entries if entry.resource == "ruleset")
+    assert ruleset.action == ReconciliationAction.UNCHANGED
+    assert not any(
+        call[1] == "PUT" and "/rulesets/" in call[0] for call in client.calls
+    )
+
+
+def test_project_service_updates_drifted_ruleset(monkeypatch):
+    configured = load_policy(Path(__file__).parents[1])
+    client = EndpointClient(
+        workflows=True,
+        auto_merge=False,
+        rulesets=[{"id": 42, "name": configured.ruleset.name}],
+        ruleset_detail={
+            "id": 42,
+            "name": configured.ruleset.name,
+            "enforcement": "active",
+            "bypass_actors": [{"actor_type": "RepositoryRole", "actor_id": 5}],
+            "conditions": {"ref_name": {"include": ["~DEFAULT_BRANCH"], "exclude": []}},
+            "rules": [],
+            "target": "branch",
+        },
+    )
+    service = ProjectService(configured, client=client)
+    monkeypatch.setattr(service, "locate", lambda: ([{"number": 6}], empty_project()))
+
+    report = service.plan()
+    service._apply_repository_settings()
+
+    ruleset = next(entry for entry in report.entries if entry.resource == "ruleset")
+    assert ruleset.action == ReconciliationAction.UPDATE
+    assert any(call[1] == "PUT" for call in client.calls)
 
 
 def test_project_service_snapshot_rejects_missing_and_duplicate(monkeypatch):
