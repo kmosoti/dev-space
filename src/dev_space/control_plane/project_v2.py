@@ -139,7 +139,10 @@ _LIST_PROJECTS = """
 query DevSpaceProjects($login: String!, $cursor: String) {
   user(login: $login) {
     projectsV2(first: 100, after: $cursor) {
-      nodes { id number title shortDescription readme public closed url }
+      nodes {
+        id number title shortDescription readme public closed url
+        viewerCanUpdate viewerCanClose viewerCanReopen
+      }
       pageInfo { hasNextPage endCursor }
     }
   }
