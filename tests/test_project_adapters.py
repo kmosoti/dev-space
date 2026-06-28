@@ -267,6 +267,18 @@ def test_project_doctor_reports_identity_states(
         load_policy(Path(__file__).parents[1]), client=EndpointClient()
     )
     monkeypatch.setattr(service, "locate", lambda: (matches, snapshot_value))
+    monkeypatch.setattr(
+        service.adapter,
+        "list_projects",
+        lambda _owner: [
+            {
+                "number": 6,
+                "title": "dev-space",
+                "viewerCanUpdate": True,
+                "closed": False,
+            }
+        ],
+    )
 
     report = service.doctor()
     project_check = next(
@@ -274,8 +286,77 @@ def test_project_doctor_reports_identity_states(
     )
 
     assert project_check.status == status
-    assert len(report.checks) == 4
+    assert len(report.checks) == 5
     assert report.healthy is (status == "ok")
+
+
+@pytest.mark.parametrize(
+    ("actor", "projects", "healthy"),
+    [
+        (
+            "kmosoti",
+            [
+                {
+                    "number": 6,
+                    "title": "dev-space",
+                    "viewerCanUpdate": True,
+                    "closed": False,
+                },
+                {
+                    "number": 3,
+                    "title": "archive",
+                    "viewerCanUpdate": True,
+                    "closed": True,
+                },
+            ],
+            True,
+        ),
+        (
+            "kz-harbringer",
+            [
+                {
+                    "number": 6,
+                    "title": "dev-space",
+                    "viewerCanUpdate": True,
+                    "closed": False,
+                }
+            ],
+            False,
+        ),
+        (
+            "kmosoti",
+            [
+                {
+                    "number": 6,
+                    "title": "dev-space",
+                    "viewerCanUpdate": False,
+                    "closed": False,
+                }
+            ],
+            False,
+        ),
+        (
+            "kmosoti",
+            [{"number": 6, "title": "dev-space"}],
+            False,
+        ),
+    ],
+)
+def test_project_doctor_checks_every_owner_project(
+    monkeypatch, actor, projects, healthy
+):
+    client = EndpointClient()
+    monkeypatch.setattr(client, "current_user", lambda: actor)
+    service = ProjectService(load_policy(Path(__file__).parents[1]), client=client)
+    monkeypatch.setattr(service, "locate", lambda: ([{"number": 6}], empty_project()))
+    monkeypatch.setattr(service.adapter, "list_projects", lambda _owner: projects)
+
+    report = service.doctor()
+
+    assert report.healthy is healthy
+    assert len(
+        [check for check in report.checks if check.name.startswith("project_access:")]
+    ) == len(projects)
 
 
 class CreateAdapter:

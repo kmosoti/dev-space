@@ -90,7 +90,37 @@ class ProjectService:
     def doctor(self) -> DoctorReport:
         checks: list[DoctorCheck] = []
         actor = self.client.current_user()
-        checks.append(DoctorCheck("github_actor", "ok", actor))
+        planner = self.policy.actors.planner.login
+        checks.append(
+            DoctorCheck(
+                "github_actor",
+                "ok" if actor.casefold() == planner.casefold() else "denied",
+                actor,
+            )
+        )
+        for project in self.adapter.list_projects(self.policy.project.owner):
+            number = project.get("number")
+            title = project.get("title")
+            can_update = project.get("viewerCanUpdate")
+            closed = project.get("closed")
+            valid = (
+                isinstance(number, int)
+                and isinstance(title, str)
+                and isinstance(can_update, bool)
+                and isinstance(closed, bool)
+            )
+            checks.append(
+                DoctorCheck(
+                    f"project_access:{number}",
+                    "ok" if valid and can_update else "denied",
+                    (
+                        f"{title}; viewerCanUpdate={str(can_update).lower()}; "
+                        f"closed={str(closed).lower()}"
+                        if valid
+                        else "Project capability response is incomplete"
+                    ),
+                )
+            )
         matches, snapshot = self.locate()
         if len(matches) > 1:
             checks.append(
