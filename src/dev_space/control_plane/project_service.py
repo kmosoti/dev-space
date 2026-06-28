@@ -314,6 +314,8 @@ class ProjectService:
             if isinstance(rulesets, list)
             else []
         )
+        actual_ruleset = self._ruleset_detail(matching[0]) if matching else None
+        desired_ruleset = self._ruleset_payload()
         workflows_ready = self._contract_workflows_exist()
         if not workflows_ready:
             action = ReconciliationAction.HUMAN_ACTION_REQUIRED
@@ -321,6 +323,9 @@ class ProjectService:
         elif not matching:
             action = ReconciliationAction.CREATE
             detail = "create managed main ruleset"
+        elif self._ruleset_matches(desired_ruleset, actual_ruleset):
+            action = ReconciliationAction.UNCHANGED
+            detail = "managed main ruleset matches"
         else:
             action = ReconciliationAction.UPDATE
             detail = "reconcile managed main ruleset"
@@ -330,8 +335,8 @@ class ProjectService:
                 resource="ruleset",
                 key=self.policy.ruleset.name,
                 detail=detail,
-                desired=self._ruleset_payload(),
-                actual=matching[0] if matching else None,
+                desired=desired_ruleset,
+                actual=actual_ruleset,
             )
         )
 
@@ -360,17 +365,54 @@ class ProjectService:
         )
         payload = self._ruleset_payload()
         if matching and isinstance(matching[0].get("id"), int):
-            self.client.rest(
-                f"repos/{self.policy.repository.full_name}/rulesets/{matching[0]['id']}",
-                method="PUT",
-                payload=payload,
-            )
+            actual = self._ruleset_detail(matching[0])
+            if not self._ruleset_matches(payload, actual):
+                self.client.rest(
+                    f"repos/{self.policy.repository.full_name}/rulesets/{matching[0]['id']}",
+                    method="PUT",
+                    payload=payload,
+                )
         elif not matching:
             self.client.rest(
                 f"repos/{self.policy.repository.full_name}/rulesets",
                 method="POST",
                 payload=payload,
             )
+
+    def _ruleset_detail(self, summary: dict[str, object]) -> dict[str, object] | None:
+        ruleset_id = summary.get("id")
+        if not isinstance(ruleset_id, int):
+            return None
+        detail = self.client.rest(
+            f"repos/{self.policy.repository.full_name}/rulesets/{ruleset_id}"
+        )
+        return detail if isinstance(detail, dict) else None
+
+    @staticmethod
+    def _ruleset_matches(
+        desired: dict[str, object], actual: dict[str, object] | None
+    ) -> bool:
+        if actual is None:
+            return False
+
+        def project(value: object, template: object) -> object:
+            if isinstance(template, dict):
+                if not isinstance(value, dict):
+                    return None
+                return {
+                    key: project(value.get(key), expected)
+                    for key, expected in template.items()
+                }
+            if isinstance(template, list):
+                if not isinstance(value, list):
+                    return None
+                return [
+                    project(item, expected)
+                    for item, expected in zip(value, template, strict=False)
+                ]
+            return value
+
+        return project(actual, desired) == desired
 
     def _contract_workflows_exist(self) -> bool:
         paths = (
