@@ -1,3 +1,5 @@
+> **Lifecycle: Frozen — 2026-08-29.** This repository is preserved as a completed development-era snapshot. It is no longer an active focus; related ideas have moved into newer coordination-system work.
+
 # dev-space
 
 Agent-first development workflow orchestrator built with Python and Rust.
